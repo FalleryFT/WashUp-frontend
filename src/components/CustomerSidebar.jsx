@@ -111,7 +111,7 @@ function SidebarBody({ url, user, onLogout, onClose }) {
 // ─────────────────────────────────────────────────────
 // Default Export
 // ─────────────────────────────────────────────────────
-export default function CustomerSidebar() {
+export default function CustomerSidebar({ children }) {
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
