@@ -1,8 +1,8 @@
 // src/pages/Login.jsx
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import AuthLayout from '../components/AuthLayout';
+import { useAuth } from '../../context/AuthContext';
+import AuthLayout from '../../components/AuthLayout';
 
 export default function Login() {
   const { login, getDashboardPath } = useAuth();

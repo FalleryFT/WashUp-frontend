@@ -1,8 +1,8 @@
 // src/pages/Register.jsx
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import AuthLayout from '../components/AuthLayout';
+import { useAuth } from '../../context/AuthContext';
+import AuthLayout from '../../components/AuthLayout';
 
 const Register = () => {
   const { register } = useAuth();

@@ -3,11 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Pages
-import LandingPage        from './landingpage';
-import Login              from './pages/Login';
-import Register           from './pages/Register';
-import ForgotPassword     from './pages/ForgotPassword';
-import NewPassword        from './pages/NewPassword';
+import LandingPage        from './pages/landingpage';
+import Login              from './pages/Auth/Login';
+import Register           from './pages/Auth/Register';
+import ForgotPassword     from './pages/Auth/ForgotPassword';
+import NewPassword        from './pages/Auth/NewPassword';
 import AdminDashboard     from './Pages/Admin/dashboard';
 import CustomerDashboard  from './Pages/Customer/dashboard';
 
