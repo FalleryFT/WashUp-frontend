@@ -2,77 +2,371 @@
 import { useState } from "react";
 import AdminSidebar from "../../components/AdminSidebar";
 import { useAuth } from "../../context/AuthContext";
+import { Printer, Trash2, Eye } from "lucide-react";
 
-// ── Dummy data ────────────────────────────────────────
-const chartData = [
-  { day: "Sen", val: 300000 },
-  { day: "Sel", val: 380000 },
-  { day: "Rab", val: 350000 },
-  { day: "Kam", val: 420000 },
-  { day: "Jum", val: 390000 },
-  { day: "Sab", val: 510000 },
-  { day: "Min", val: 500000 },
+// ─── DATA DUMMY ───────────────────────────────────────────────────────────────
+const transaksiData = [
+    { id: 1, nota: "17081945", nama: "Hamba Allah",  berat: "10Kg", tgl: "17 Januari 1983",  status: "Sedang Dicuci",  layanan: "Cuci Kering",  totalHarga: "Rp 70.000", estimasi: "18 Januari 1983",  items: [{ item: "Kiloan", jumlah: "10kg", harga: "Rp7.000", sub: "Rp70.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", null] },
+    { id: 2, nota: "31122023", nama: "Alan Cooper",  berat: "4Kg",  tgl: "6 Oktober 2010",  status: "Sedang Dicuci",  layanan: "Cuci Setrika",  totalHarga: "Rp 88.000", estimasi: "6 Oktober 2010",   items: [{ item: "Kiloan", jumlah: "4kg", harga: "Rp7.000", sub: "Rp28.000" }, { item: "Selimut", jumlah: "1x", harga: "Rp20.000", sub: "Rp20.000" }, { item: "Bedcover", jumlah: "1x", harga: "Rp30.000", sub: "Rp30.000" }, { item: "Pelembut", jumlah: "1x", harga: "Rp5.000", sub: "Rp5.000" }, { item: "Sabun", jumlah: "1x", harga: "Rp5.000", sub: "Rp5.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", null] },
+    { id: 3, nota: "01072006", nama: "Steve Krug",   berat: "1Kg",  tgl: "7 Juni 2012",     status: "Selesai",        layanan: "Cuci Kering",  totalHarga: "Rp 7.000",  estimasi: "8 Juni 2012",      items: [{ item: "Kiloan", jumlah: "1kg", harga: "Rp7.000", sub: "Rp7.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"] },
+    { id: 4, nota: "15081945", nama: "Jeff Gothelf", berat: "3Kg",  tgl: "1 Oktober 2015",  status: "Dibatalkan",     layanan: "Cuci Setrika",  totalHarga: "Rp 21.000", estimasi: "2 Oktober 2015",   items: [{ item: "Kiloan", jumlah: "3kg", harga: "Rp7.000", sub: "Rp21.000" }], timeline: ["Order di terima", null, null, null] },
+    { id: 5, nota: "24682468", nama: "Jared Spool",  berat: "9Kg",  tgl: "12 November 2020", status: "Sedang Dicuci",  layanan: "Cuci Kering",  totalHarga: "Rp 63.000", estimasi: "13 November 2020", items: [{ item: "Kiloan", jumlah: "9kg", harga: "Rp7.000", sub: "Rp63.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", null] },
+    { id: 6, nota: "13571357", nama: "Khoi Vinh",    berat: "5Kg",  tgl: "5 Oktober 2021",  status: "Dibatalkan",     layanan: "Cuci Kering",   totalHarga: "Rp 35.000", estimasi: "6 Oktober 2021",   items: [{ item: "Kiloan", jumlah: "5kg", harga: "Rp7.000", sub: "Rp35.000" }], timeline: ["Order di terima", null, null, null] },
+    { id: 7, nota: "12344321", nama: "Brad Frost",   berat: "7Kg",  tgl: "8 Juni 2022",     status: "Selesai",        layanan: "Cuci Setrika",  totalHarga: "Rp 49.000", estimasi: "9 Juni 2022",      items: [{ item: "Kiloan", jumlah: "7kg", harga: "Rp7.000", sub: "Rp49.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"] },
 ];
 
-const transactions = [
-  { no: 1, nota: "17081945", nama: "Hamba Allah",  berat: "10Kg", pengambilan: "17 Januari 1983",  status: "Sedang Dicuci" },
-  { no: 2, nota: "31122023", nama: "Alan Cooper",  berat: "3Kg",  pengambilan: "6 Oktober 2010",   status: "Siap Diambil"  },
-  { no: 3, nota: "01072006", nama: "Steve Krug",   berat: "1Kg",  pengambilan: "7 Juni 2012",      status: "Selesai"       },
-  { no: 4, nota: "15081945", nama: "Jeff Gothelf", berat: "3Kg",  pengambilan: "1 Oktober 2015",   status: "Dibatalkan"    },
-  { no: 5, nota: "24682468", nama: "Jared Spool",  berat: "9Kg",  pengambilan: "12 November 2020", status: "Sedang Dicuci" },
-  { no: 6, nota: "13571357", nama: "Khoi Vinh",    berat: "5Kg",  pengambilan: "5 Oktober 2021",   status: "Dibatalkan"    },
-  { no: 7, nota: "12344321", nama: "Brad Frost",   berat: "7Kg",  pengambilan: "8 Juni 2022",      status: "Selesai"       },
-];
+const weeklyData = [300000, 420000, 380000, 450000, 500000, 480000, 500000];
+const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 
-const statusStyle = {
-  "Sedang Dicuci": "bg-yellow-100 text-yellow-700",
-  "Siap Diambil":  "bg-blue-100  text-blue-700",
-  "Selesai":       "bg-green-100 text-green-700",
-  "Dibatalkan":    "bg-red-100   text-red-700",
-};
-
-// ── Bar Chart ─────────────────────────────────────────
-function BarChart() {
-  const max = Math.max(...chartData.map((d) => d.val));
-  const [tooltip, setTooltip] = useState(null);
-
-  return (
-    <div className="flex items-end gap-2 h-36 pt-2">
-      {chartData.map((d, i) => (
-        <div
-          key={i}
-          className="flex flex-col items-center flex-1 gap-1 relative"
-          onMouseEnter={() => setTooltip(i)}
-          onMouseLeave={() => setTooltip(null)}
-        >
-          {tooltip === i && (
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0077b6] text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 shadow">
-              Rp {(d.val / 1000).toFixed(0)}k
-            </div>
-          )}
-          <div
-            className="w-full bg-[#0077b6] hover:bg-[#0EA5E0] rounded-t transition-colors cursor-pointer"
-            style={{ height: `${(d.val / max) * 120}px` }}
-          />
-          <span className="text-xs text-gray-500">{d.day}</span>
-        </div>
-      ))}
-    </div>
-  );
+// ─── HELPER ───────────────────────────────────────────────────────────────────
+function statusColor(status) {
+    const map = {
+        "Sedang Dicuci": "bg-[#fdf0d5] text-yellow-800",
+        "Siap Diambil":  "bg-[#caf0f8] text-cyan-800",
+        "Selesai":       "bg-[#d8f3dc] text-green-800",
+        "Dibatalkan":    "bg-[#ffddd2] text-red-800",
+    };
+    return map[status] ?? "bg-gray-100 text-gray-700";
 }
 
-// ── Main ──────────────────────────────────────────────
-export default function AdminDashboard() {
-  const { user } = useAuth();
-  const [activePage, setActivePage] = useState(1);
+// ─── LINE CHART SVG ───────────────────────────────────────────────────────────
+function LineChart() {
+    const W = 560, H = 220, padL = 60, padB = 10, padT = 10, padR = 20;
+    const drawW = W - padL - padR;
+    const drawH = H - padB - padT;
+    const maxVal = 600000;
+    const yTicks = [0, 100000, 200000, 300000, 400000, 500000, 600000];
 
-  return (
-    <div className="flex h-screen bg-[#eaf6fb] overflow-hidden font-sans">
-      <AdminSidebar />
+    const x = (i) => padL + (i / (weeklyData.length - 1)) * drawW;
+    const y = (v) => padT + drawH - (v / maxVal) * drawH;
 
-      <main className="flex-1 overflow-y-auto p-6 pt-16 md:pt-6">
+    const polyline = weeklyData.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+    const area = `${x(0)},${y(0)} ${polyline} ${x(weeklyData.length - 1)},${y(0)}`;
 
-        {/* Greeting */}
+    // tooltip state
+    const [tooltip, setTooltip] = useState(null);
+
+    return (
+        <div className="relative">
+            <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
+                {/* Y grid lines + labels */}
+                {yTicks.map((t) => (
+                    <g key={t}>
+                        <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)} stroke="#e5e7eb" strokeWidth="1" />
+                        <text x={padL - 6} y={y(t) + 4} textAnchor="end" fontSize="10" fill="#9ca3af">
+                            {t === 0 ? "0" : `${t / 1000}k`}
+                        </text>
+                    </g>
+                ))}
+
+                {/* Y axis label */}
+                <text x={10} y={H / 2} textAnchor="middle" fontSize="10" fill="#6b7280" transform={`rotate(-90, 10, ${H / 2})`}>
+                    Pendapatan (Rp)
+                </text>
+
+                {/* Area fill */}
+                <polygon points={area} fill="#00b4d8" fillOpacity="0.08" />
+
+                {/* Line */}
+                <polyline points={polyline} fill="none" stroke="#0077b6" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+
+                {/* Dots + hover areas */}
+                {weeklyData.map((v, i) => (
+                    <g key={i}
+                        onMouseEnter={() => setTooltip({ i, v })}
+                        onMouseLeave={() => setTooltip(null)}
+                        style={{ cursor: "pointer" }}
+                    >
+                        <circle cx={x(i)} cy={y(v)} r="10" fill="transparent" />
+                        <circle cx={x(i)} cy={y(v)} r="5" fill="white" stroke="#0077b6" strokeWidth="2.5" />
+                    </g>
+                ))}
+
+                {/* Tooltip */}
+                {tooltip && (() => {
+                    const tx = x(tooltip.i);
+                    const ty = y(tooltip.v);
+                    const label = `${days[tooltip.i]}, Rp ${tooltip.v.toLocaleString("id-ID")},00`;
+                    const boxW = 130, boxH = 28;
+                    const bx = Math.min(tx - boxW / 2, W - padR - boxW);
+                    return (
+                        <g>
+                            <rect x={bx} y={ty - 36} width={boxW} height={boxH} rx="6" fill="white" stroke="#d1d5db" strokeWidth="1" />
+                            <text x={bx + boxW / 2} y={ty - 18} textAnchor="middle" fontSize="10" fill="#111827" fontWeight="600">{label}</text>
+                        </g>
+                    );
+                })()}
+            </svg>
+        </div>
+    );
+}
+
+// ─── STATUS CARD ──────────────────────────────────────────────────────────────
+function StatusCard({ title, value, barColor, isCurrency }) {
+    return (
+        <div className="bg-white border-2 border-black rounded-xl overflow-hidden flex flex-col shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)]">
+            <div className="flex-1 px-3 py-2">
+                <p className="text-[9px] font-black leading-tight text-gray-700 uppercase tracking-tighter mb-1">{title}</p>
+                <p className={`font-black text-gray-900 ${isCurrency ? "text-base leading-tight" : "text-3xl"}`}>{value}</p>
+            </div>
+            <div className={`h-5 w-full border-t-2 border-black ${barColor}`} />
+        </div>
+    );
+}
+
+// ─── MODAL KONFIRMASI HAPUS ───────────────────────────────────────────────────
+function ConfirmDeleteModal({ onConfirm, onCancel }) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-2xl shadow-2xl px-10 py-8 max-w-sm w-full mx-4 text-center border border-gray-200">
+                <p className="text-2xl font-black text-gray-900 mb-8">Apakah anda yakin menghapus ini?</p>
+                <div className="flex justify-center gap-4">
+                    <button
+                        onClick={onConfirm}
+                        className="px-6 py-2 rounded-full border-2 border-red-500 text-red-500 font-bold hover:bg-red-50 transition-colors"
+                    >
+                        Hapus
+                    </button>
+                    <button
+                        onClick={onCancel}
+                        className="px-6 py-2 rounded-full border-2 border-[#00b4d8] text-[#00b4d8] font-bold hover:bg-cyan-50 transition-colors"
+                    >
+                        Kembali
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── TIMELINE STATUS ──────────────────────────────────────────────────────────
+const timelineSteps = [
+    { label: "Order di terima",  sub: "6 Oktober 10.30" },
+    { label: "Sedang Di Pilah",  sub: "6 Oktober 12.30" },
+    { label: "Sedang Di cuci",   sub: "Sedang Berjalan" },
+    { label: "Siap Di ambil",    sub: "Belum Terjadi" },
+];
+
+function Timeline({ activeSteps }) {
+    // activeSteps: array of labels yang sudah tercapai
+    return (
+        <div className="flex flex-col gap-0">
+            {timelineSteps.map((step, i) => {
+                const done = activeSteps.includes(step.label);
+                const current = done && (i === activeSteps.length - 1 || !activeSteps.includes(timelineSteps[i + 1]?.label));
+                return (
+                    <div key={i} className="flex items-start gap-3 relative">
+                        {/* Line connector */}
+                        {i < timelineSteps.length - 1 && (
+                            <div className={`absolute left-[10px] top-5 w-0.5 h-10 ${done && activeSteps.includes(timelineSteps[i + 1]?.label) ? "bg-green-500" : "bg-gray-200"}`} />
+                        )}
+                        {/* Dot */}
+                        <div className={`mt-1 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center z-10
+                            ${done
+                                ? current
+                                    ? "bg-[#00b4d8] border-[#00b4d8]"
+                                    : "bg-green-500 border-green-500"
+                                : "bg-white border-gray-300"}`}
+                        >
+                            {done && !current && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                        {/* Label */}
+                        <div className="pb-8">
+                            <p className={`text-sm font-bold ${done ? "text-gray-900" : "text-gray-400"}`}>{step.label}</p>
+                            <p className={`text-xs ${done ? "text-gray-500" : "text-gray-300"}`}>{step.sub}</p>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+// ─── MODAL DETAIL TRANSAKSI ───────────────────────────────────────────────────
+function DetailModal({ row, onClose, onDelete }) {
+    const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
+    const totalNum = row.items.reduce((acc, it) => {
+        const n = parseInt(it.sub.replace(/[^0-9]/g, ""), 10);
+        return acc + (isNaN(n) ? 0 : n);
+    }, 0);
+
+    return (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 p-8 relative border border-gray-200">
+
+                {/* Confirm delete nested */}
+                {showConfirmDelete && (
+                    <ConfirmDeleteModal
+                        onConfirm={() => { setShowConfirmDelete(false); onDelete(row.id); onClose(); }}
+                        onCancel={() => setShowConfirmDelete(false)}
+                    />
+                )}
+
+                <div className="flex gap-8">
+                    {/* LEFT: Info + Tabel Item */}
+                    <div className="flex-1">
+                        <h2 className="text-2xl font-black text-gray-900 mb-4">Detail Transaksi</h2>
+
+                        {/* Info rows */}
+                        {[
+                            ["Nota",            row.nota],
+                            ["Layanan",         row.layanan],
+                            ["Tanggal Order",   row.tgl],
+                            ["Nama",            row.nama],
+                            ["Total Berat",     row.berat],
+                            ["Total Harga",     row.totalHarga],
+                            ["Estimasi Selesai",row.estimasi],
+                        ].map(([k, v]) => (
+                            <div key={k} className="flex text-sm mb-1">
+                                <span className="w-36 text-gray-700 font-medium">{k}</span>
+                                <span className="mr-2 text-gray-500">:</span>
+                                <span className="font-semibold text-gray-900">{v}</span>
+                            </div>
+                        ))}
+
+                        {/* Item table */}
+                        <div className="mt-3 rounded-lg overflow-hidden border border-gray-200">
+                            <table className="w-full text-sm text-left">
+                                <thead>
+                                    <tr className="bg-[#00b4d8] text-white">
+                                        <th className="px-3 py-2 font-semibold">Item</th>
+                                        <th className="px-3 py-2 font-semibold">Jumlah</th>
+                                        <th className="px-3 py-2 font-semibold">Harga satuan</th>
+                                        <th className="px-3 py-2 font-semibold">Sub Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {row.items.map((it, i) => (
+                                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                                            <td className="px-3 py-1.5 text-gray-800">{it.item}</td>
+                                            <td className="px-3 py-1.5 text-gray-800">{it.jumlah}</td>
+                                            <td className="px-3 py-1.5 text-gray-800">{it.harga}</td>
+                                            <td className="px-3 py-1.5 text-gray-800">{it.sub}</td>
+                                        </tr>
+                                    ))}
+                                    <tr className="bg-gray-50">
+                                        <td colSpan={3} className="px-3 py-1.5 font-bold text-gray-800">Total</td>
+                                        <td className="px-3 py-1.5 font-bold text-gray-900">
+                                            Rp{totalNum.toLocaleString("id-ID")}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex justify-between mt-4">
+                            <div className="flex gap-2">
+                                <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border-2 border-gray-400 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">
+                                    <Printer size={14} /> Cetak
+                                </button>
+                                <button
+                                    onClick={() => setShowConfirmDelete(true)}
+                                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border-2 border-red-400 text-red-500 text-sm font-bold hover:bg-red-50 transition-colors"
+                                >
+                                    <Trash2 size={14} /> Hapus
+                                </button>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="px-4 py-1.5 rounded-lg border-2 border-[#00b4d8] text-[#00b4d8] text-sm font-bold hover:bg-cyan-50 transition-colors"
+                            >
+                                Kembali
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* RIGHT: Status + Timeline */}
+                    <div className="w-52 flex-shrink-0">
+                        <div className="mb-4">
+                            <span className="text-sm font-bold text-gray-700">Status : </span>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor(row.status)}`}>
+                                {row.status}
+                            </span>
+                        </div>
+                        <Timeline activeSteps={row.timeline.filter(Boolean)} />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── TABLE ROW ────────────────────────────────────────────────────────────────
+function TableRow({ row, no, onDelete, onDetail }) {
+    return (
+        <tr className="border-b border-gray-100 hover:bg-gray-50">
+            <td className="p-3 text-center border-r border-gray-100 text-sm">{no}</td>
+            <td className="p-3 border-r border-gray-100 text-sm">{row.nota}</td>
+            <td className="p-3 border-r border-gray-100 text-sm">{row.nama}</td>
+            <td className="p-3 border-r border-gray-100 text-sm">{row.berat}</td>
+            <td className="p-3 border-r border-gray-100 text-sm">{row.tgl}</td>
+            <td className="p-3 border-r border-gray-100 text-center">
+                <span className={`px-3 py-1 rounded-md text-[11px] font-bold inline-block ${statusColor(row.status)}`}>
+                    {row.status}
+                </span>
+            </td>
+            <td className="p-3">
+                <div className="flex justify-center gap-2">
+                    <button
+                        onClick={() => onDelete(row)}
+                        className="bg-red-500 text-white p-1.5 rounded-md hover:bg-red-600 transition-colors"
+                        title="Hapus"
+                    >
+                        <Trash2 size={15} />
+                    </button>
+                    <button
+                        onClick={() => onDetail(row)}
+                        className="bg-[#00b4d8] text-white p-1.5 rounded-md hover:bg-[#0096c7] transition-colors"
+                        title="Detail"
+                    >
+                        <Eye size={15} />
+                    </button>
+                </div>
+            </td>
+        </tr>
+    );
+}
+
+// ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
+export default function Dashboard() {
+    const [data, setData] = useState(transaksiData);
+    const [page, setPage] = useState(1);
+    const perPage = 7;
+    const totalPages = Math.ceil(data.length / perPage);
+    const pageData = data.slice((page - 1) * perPage, page * perPage);
+
+    // Modal state
+    const [confirmDelete, setConfirmDelete] = useState(null); // row object
+    const [detailRow, setDetailRow]         = useState(null); // row object
+
+    const handleDelete = (id) => {
+        setData((prev) => prev.filter((r) => r.id !== id));
+        setConfirmDelete(null);
+    };
+
+    return (
+        <AdminSidebar>
+            {/* ── Konfirmasi hapus dari tabel ── */}
+            {confirmDelete && (
+                <ConfirmDeleteModal
+                    onConfirm={() => handleDelete(confirmDelete.id)}
+                    onCancel={() => setConfirmDelete(null)}
+                />
+            )}
+
+            {/* ── Detail transaksi ── */}
+            {detailRow && (
+                <DetailModal
+                    row={detailRow}
+                    onClose={() => setDetailRow(null)}
+                    onDetail={(r) => setDetailRow(r)}
+                    onDelete={(id) => { handleDelete(id); setDetailRow(null); }}
+                />
+            )}
+
+            {/* Greeting */}
         <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow">
           <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
@@ -80,111 +374,94 @@ export default function AdminDashboard() {
           <h1 className="text-xl font-bold">Halo Admin</h1>
         </div>
 
-        {/* Chart + Status Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-          {/* Chart */}
-          <div className="lg:col-span-2 bg-white rounded-2xl p-5 shadow-sm">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
-              Grafik Pendapatan Mingguan
-            </p>
-            <BarChart />
-          </div>
+            <div className="space-y-6">
+                {/* ── TOP: Grafik + Status Cards ── */}
+                <div className="grid grid-cols-12 gap-6">
 
-          {/* Status Cards */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "TOTAL ORDER HARI INI", value: "50",             highlight: true  },
-              { label: "CUCIAN PROSES",         value: "25",             highlight: false },
-              { label: "SELESAI",               value: "25",             highlight: false },
-              { label: "OMZET HARI INI",        value: "Rp 500.000,00", highlight: false, big: true },
-            ].map((card, i) => (
-              <div
-                key={i}
-                className={`rounded-xl p-4 shadow-sm border ${
-                  card.highlight
-                    ? "border-[#0077b6] bg-blue-50"
-                    : "border-gray-200 bg-white"
-                }`}
-              >
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider leading-tight mb-1">
-                  {card.label}
-                </p>
-                <p className={`font-bold text-[#0077b6] ${card.big ? "text-base" : "text-2xl"}`}>
-                  {card.value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+                    {/* Grafik */}
+                    <div className="col-span-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                        <h2 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide mb-3">
+                            Grafik Pendapatan Mingguan
+                        </h2>
+                        <LineChart />
+                        <div className="flex justify-between px-14 mt-1 text-xs font-bold text-gray-500 uppercase">
+                            {days.map((d) => <span key={d}>{d}</span>)}
+                        </div>
+                    </div>
 
-        {/* Transaction Table */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-bold text-[#0077b6]">Tabel Transaksi Terbaru</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[#0077b6] text-white">
-                  {["No", "NOTA", "Nama", "Berat", "Pengambilan", "Status", "Aksi"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((t, i) => (
-                  <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                    <td className="px-4 py-3 text-gray-600">{t.no}</td>
-                    <td className="px-4 py-3 font-mono text-gray-700">{t.nota}</td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{t.nama}</td>
-                    <td className="px-4 py-3 text-gray-600">{t.berat}</td>
-                    <td className="px-4 py-3 text-gray-600">{t.pengambilan}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusStyle[t.status]}`}>
-                        {t.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button className="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-red-50 hover:border-red-200 transition">
-                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                          </svg>
+                    {/* Status Cards */}
+                    <div className="col-span-4 flex flex-col gap-3">
+                        <p className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Status Cards</p>
+                        <div className="grid grid-cols-2 gap-3 flex-1">
+                            <StatusCard title="TOTAL ORDER HARI INI" value="50"             barColor="bg-[#00b4d8]" />
+                            <StatusCard title="CUCIAN PROSES"        value="25"             barColor="bg-[#f9f871]" />
+                            <StatusCard title="SELESAI"              value="25"             barColor="bg-[#d5f5e3]" />
+                            <StatusCard title="OMZET HARI INI"        value="Rp 500.000,00"  barColor="bg-white" isCurrency />
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── BOTTOM: Tabel Transaksi ── */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 className="font-extrabold text-gray-800 mb-5 text-sm">Tabel Transaksi Terbaru</h2>
+
+                    <div className="overflow-hidden rounded-lg border border-gray-200">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-[#00b4d8] text-white text-sm">
+                                    {["No", "NOTA", "Nama", "Berat", "Pengambilan", "Status", "Aksi"].map((h) => (
+                                        <th key={h} className={`p-3 font-semibold border-r border-white/20 last:border-r-0 ${h === "No" || h === "Aksi" ? "text-center w-14" : ""}`}>
+                                            {h}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pageData.map((row, i) => (
+                                    <TableRow
+                                        key={row.id}
+                                        row={row}
+                                        no={(page - 1) * perPage + i + 1}
+                                        onDelete={(r) => setConfirmDelete(r)}
+                                        onDetail={(r) => setDetailRow(r)}
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination */}
+                    <div className="flex justify-end mt-4 gap-1 items-center">
+                        <button
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-3 py-1 border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                        >
+                            Sebelumnya
                         </button>
-                        <button className="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition">
-                          <svg className="w-4 h-4 text-[#0077b6]" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                          </svg>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                            <button
+                                key={n}
+                                onClick={() => setPage(n)}
+                                className={`px-3 py-1 rounded text-xs font-bold border transition-colors
+                                    ${n === page
+                                        ? "bg-[#00b4d8] text-white border-[#00b4d8]"
+                                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                                    }`}
+                            >
+                                {n}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="px-3 py-1 border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                        >
+                            Selanjutnya
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex justify-end items-center gap-1 px-5 py-4 border-t border-gray-100">
-            <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition">Sebelumnya</button>
-            {[1, 2, 3, 4, 5].map((p) => (
-              <button
-                key={p}
-                onClick={() => setActivePage(p)}
-                className={`w-8 h-8 text-sm rounded transition ${
-                  activePage === p
-                    ? "bg-[#0077b6] text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-            <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition">Selanjutnya</button>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+                    </div>
+                </div>
+            </div>
+        </AdminSidebar>
+    );
 }
