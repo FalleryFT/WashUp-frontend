@@ -9,6 +9,7 @@ import Register           from './pages/Auth/Register';
 import ForgotPassword     from './pages/Auth/ForgotPassword';
 import NewPassword        from './pages/Auth/NewPassword';
 import AdminDashboard     from './Pages/Admin/dashboard';
+import AdminNewTransaction     from './Pages/Admin/New-Transaction';
 import CustomerDashboard  from './Pages/Customer/dashboard';
 
 // ── Guard: hanya bisa diakses kalau sudah login ────────
@@ -62,6 +63,9 @@ function AppRoutes() {
       {/* Admin */}
       <Route path="/admin/dashboard" element={
         <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
+      } />
+      <Route path="/admin/New-Transaction" element={
+        <ProtectedRoute role="admin"><AdminNewTransaction /></ProtectedRoute>
       } />
 
       {/* Customer */}
