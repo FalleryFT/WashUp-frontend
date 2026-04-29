@@ -1,8 +1,8 @@
 // src/pages/NewPassword.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AuthLayout from '../components/AuthLayout';
-import api from '../api/axios';
+import AuthLayout from '../../components/AuthLayout';
+import api from '../../api/axios';
 
 const NewPassword = () => {
   const navigate = useNavigate();

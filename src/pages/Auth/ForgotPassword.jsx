@@ -1,8 +1,8 @@
 // src/pages/ForgotPassword.jsx
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import AuthLayout from '../components/AuthLayout';
-import api from '../api/axios';
+import AuthLayout from '../../components/AuthLayout';
+import api from '../../api/axios';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
