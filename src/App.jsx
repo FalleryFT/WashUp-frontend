@@ -3,14 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Pages
-import LandingPage        from './pages/landingpage';
-import Login              from './pages/Auth/Login';
-import Register           from './pages/Auth/Register';
-import ForgotPassword     from './pages/Auth/ForgotPassword';
-import NewPassword        from './pages/Auth/NewPassword';
-import AdminDashboard     from './Pages/Admin/dashboard';
-import AdminNewTransaction     from './Pages/Admin/New-Transaction';
-import CustomerDashboard  from './Pages/Customer/dashboard';
+import LandingPage          from './pages/landingpage';
+import Login                from './pages/Auth/Login';
+import Register             from './pages/Auth/Register';
+import ForgotPassword       from './pages/Auth/ForgotPassword';
+import NewPassword          from './pages/Auth/NewPassword';
+import AdminDashboard       from './Pages/Admin/dashboard';
+import AdminNewTransaction  from './Pages/Admin/New-Transaction';
+import OrderList            from './pages/Admin/OrderList';
+import CustomerDashboard    from './Pages/Customer/dashboard';
 
 // ── Guard: hanya bisa diakses kalau sudah login ────────
 const ProtectedRoute = ({ children, role }) => {
@@ -66,6 +67,9 @@ function AppRoutes() {
       } />
       <Route path="/admin/New-Transaction" element={
         <ProtectedRoute role="admin"><AdminNewTransaction /></ProtectedRoute>
+      } />
+      <Route path="/admin/orders" element={
+      <ProtectedRoute role="admin"><OrderList /></ProtectedRoute>
       } />
 
       {/* Customer */}
