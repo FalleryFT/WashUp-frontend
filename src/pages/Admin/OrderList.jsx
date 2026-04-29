@@ -261,7 +261,8 @@ export default function OrderList() {
                 </tr>
               ) : (
                 paginated.map((item, idx) => (
-                  <tr key={item.id} className={`hover:bg-blue-50/30 transition ${idx % 2 === 1 ? "bg-gray-50/50" : "bg-white"}`}>
+                  // LOGIKA WARNA SELANG-SELING (Zebra Striping)
+                  <tr key={item.id} className={`transition hover:bg-blue-100/50 ${idx % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
                     <td className="px-4 py-3 text-center text-gray-600 border border-black">{(page - 1) * PER_PAGE + idx + 1}</td>
                     <td className="px-4 py-3 text-center font-mono text-gray-700 border border-black">{item.nota}</td>
                     <td className="px-4 py-3 text-center text-gray-800 font-medium border border-black">{item.nama}</td>
@@ -383,7 +384,8 @@ export default function OrderList() {
                     </thead>
                     <tbody>
                       {detailItem.items.map((row, i) => (
-                        <tr key={i} className="hover:bg-blue-50/30">
+                        // LOGIKA WARNA SELANG-SELING (Zebra Striping)
+                        <tr key={i} className={`transition hover:bg-blue-100/50 ${i % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
                           <td className="px-3 py-2 text-gray-700 border border-black">{row.item}</td>
                           <td className="px-3 py-2 text-right text-gray-600 border border-black">{row.jumlah}</td>
                           <td className="px-3 py-2 text-right text-gray-600 border border-black">{row.harga}</td>
