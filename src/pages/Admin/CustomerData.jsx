@@ -83,25 +83,27 @@ export default function CustomerData() {
   return (
     <AdminSidebar>
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
-        <div>
-          {/* Greeting yang disamakan dengan Dashboard */}
-          <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow w-fit">
-            <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-            </svg>
-            <h1 className="text-xl font-bold">Halo Admin</h1>
-          </div>
+      <div className="mb-6">
+        {/* Greeting Halo Admin - Lebar Penuh */}
+        <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow w-full">
+          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+          </svg>
+          <h1 className="text-xl font-bold">Halo Admin</h1>
+        </div>
+
+        {/* Baris Judul & Tombol Tambah */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-2xl md:text-3xl font-extrabold text-gray-800">
             Data Pelanggan <span className="font-normal text-gray-500">(Customer Data)</span>
           </h1>
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-2 bg-[#0077b6] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-[#005f92] transition shadow"
+          >
+            <UserPlus size={16} /> + Tambah Pelanggan
+          </button>
         </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 bg-[#0077b6] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-[#005f92] transition shadow"
-        >
-          <UserPlus size={16} /> + Tambah Pelanggan
-        </button>
       </div>
 
       {/* Table Card */}
