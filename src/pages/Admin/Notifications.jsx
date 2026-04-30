@@ -55,9 +55,14 @@ export default function Notifikasi() {
       <div className="mb-6">
         {/* Halo Admin yang dipanjangkan penuh (w-full) */}
         <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow w-full">
-          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-          </svg>
+              <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+                <path d="M4 6h16" />
+                <circle cx="12" cy="14" r="5" />
+                <path d="M9.5 14.5c.8-.8 1.7-.8 2.5 0s1.7.8 2.5 0" />
+                <circle cx="16" cy="4" r="0.5" fill="currentColor" />
+                <circle cx="18" cy="4" r="0.5" fill="currentColor" />
+              </svg>
           <h1 className="text-xl font-bold">Halo Admin</h1>
         </div>
 

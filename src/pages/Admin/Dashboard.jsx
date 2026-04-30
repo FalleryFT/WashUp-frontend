@@ -2,17 +2,17 @@
 import { useState } from "react";
 import AdminSidebar from "../../components/AdminSidebar";
 import { useAuth } from "../../context/AuthContext";
-import { Printer, Trash2, Eye, ShoppingBag, Clock, CheckCircle2, TrendingUp } from "lucide-react";
+import { Printer, Trash2, Eye, ShoppingBag, Clock, CheckCircle2, TrendingUp, ChevronLeft, ChevronRight, X, Search } from "lucide-react";
 
 // ─── DATA DUMMY ───────────────────────────────────────────────────────────────
 const transaksiData = [
-    { id: 1, nota: "17081945", nama: "Hamba Allah",  berat: "10Kg", tgl: "17 Januari 1983",  status: "Sedang Dicuci",  layanan: "Cuci Kering",  totalHarga: "Rp 70.000", estimasi: "18 Januari 1983",  items: [{ item: "Kiloan", jumlah: "10kg", harga: "Rp7.000", sub: "Rp70.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", null] },
-    { id: 2, nota: "31122023", nama: "Alan Cooper",  berat: "4Kg",  tgl: "6 Oktober 2010",  status: "Sedang Dicuci",  layanan: "Cuci Setrika",  totalHarga: "Rp 88.000", estimasi: "6 Oktober 2010",   items: [{ item: "Kiloan", jumlah: "4kg", harga: "Rp7.000", sub: "Rp28.000" }, { item: "Selimut", jumlah: "1x", harga: "Rp20.000", sub: "Rp20.000" }, { item: "Bedcover", jumlah: "1x", harga: "Rp30.000", sub: "Rp30.000" }, { item: "Pelembut", jumlah: "1x", harga: "Rp5.000", sub: "Rp5.000" }, { item: "Sabun", jumlah: "1x", harga: "Rp5.000", sub: "Rp5.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", null] },
-    { id: 3, nota: "01072006", nama: "Steve Krug",   berat: "1Kg",  tgl: "7 Juni 2012",     status: "Selesai",        layanan: "Cuci Kering",  totalHarga: "Rp 7.000",  estimasi: "8 Juni 2012",      items: [{ item: "Kiloan", jumlah: "1kg", harga: "Rp7.000", sub: "Rp7.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"] },
-    { id: 4, nota: "15081945", nama: "Jeff Gothelf", berat: "3Kg",  tgl: "1 Oktober 2015",  status: "Dibatalkan",     layanan: "Cuci Setrika",  totalHarga: "Rp 21.000", estimasi: "2 Oktober 2015",   items: [{ item: "Kiloan", jumlah: "3kg", harga: "Rp7.000", sub: "Rp21.000" }], timeline: ["Order di terima", null, null, null] },
-    { id: 5, nota: "24682468", nama: "Jared Spool",  berat: "9Kg",  tgl: "12 November 2020", status: "Sedang Dicuci",  layanan: "Cuci Kering",  totalHarga: "Rp 63.000", estimasi: "13 November 2020", items: [{ item: "Kiloan", jumlah: "9kg", harga: "Rp7.000", sub: "Rp63.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", null] },
-    { id: 6, nota: "13571357", nama: "Khoi Vinh",    berat: "5Kg",  tgl: "5 Oktober 2021",  status: "Dibatalkan",     layanan: "Cuci Kering",   totalHarga: "Rp 35.000", estimasi: "6 Oktober 2021",   items: [{ item: "Kiloan", jumlah: "5kg", harga: "Rp7.000", sub: "Rp35.000" }], timeline: ["Order di terima", null, null, null] },
-    { id: 7, nota: "12344321", nama: "Brad Frost",   berat: "7Kg",  tgl: "8 Juni 2022",     status: "Selesai",        layanan: "Cuci Setrika",  totalHarga: "Rp 49.000", estimasi: "9 Juni 2022",      items: [{ item: "Kiloan", jumlah: "7kg", harga: "Rp7.000", sub: "Rp49.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"] },
+    { id: 1, nota: "17081945", nama: "Hamba Allah", tipe: "Member", berat: "10Kg", tgl: "17 Januari 1983", status: "Sedang Dicuci", layanan: "Cuci Kering", totalHarga: "Rp 70.000", estimasi: "18 Januari 1983", items: [{ item: "Kiloan", jumlah: "10kg", harga: "Rp7.000", sub: "Rp70.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", null] },
+    { id: 2, nota: "31122023", nama: "Alan Cooper", tipe: "Member", berat: "4Kg", tgl: "6 Oktober 2010", status: "Sedang Dicuci", layanan: "Cuci Setrika", totalHarga: "Rp 88.000", estimasi: "6 Oktober 2010", items: [{ item: "Kiloan", jumlah: "4kg", harga: "Rp7.000", sub: "Rp28.000" }, { item: "Selimut", jumlah: "1x", harga: "Rp20.000", sub: "Rp20.000" }, { item: "Bedcover", jumlah: "1x", harga: "Rp30.000", sub: "Rp30.000" }, { item: "Pelembut", jumlah: "1x", harga: "Rp5.000", sub: "Rp5.000" }, { item: "Sabun", jumlah: "1x", harga: "Rp5.000", sub: "Rp5.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", null] },
+    { id: 3, nota: "01072006", nama: "Steve Krug", tipe: "Non-Member", berat: "1Kg", tgl: "7 Juni 2012", status: "Selesai", layanan: "Cuci Kering", totalHarga: "Rp 7.000", estimasi: "8 Juni 2012", items: [{ item: "Kiloan", jumlah: "1kg", harga: "Rp7.000", sub: "Rp7.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"] },
+    { id: 4, nota: "15081945", nama: "Jeff Gothelf", tipe: "Non-Member", berat: "3Kg", tgl: "1 Oktober 2015", status: "Dibatalkan", layanan: "Cuci Setrika", totalHarga: "Rp 21.000", estimasi: "2 Oktober 2015", items: [{ item: "Kiloan", jumlah: "3kg", harga: "Rp7.000", sub: "Rp21.000" }], timeline: ["Order di terima", null, null, null] },
+    { id: 5, nota: "24682468", nama: "Jared Spool", tipe: "Member", berat: "9Kg", tgl: "12 November 2020", status: "Sedang Dicuci", layanan: "Cuci Kering", totalHarga: "Rp 63.000", estimasi: "13 November 2020", items: [{ item: "Kiloan", jumlah: "9kg", harga: "Rp7.000", sub: "Rp63.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", null] },
+    { id: 6, nota: "13571357", nama: "Khoi Vinh", tipe: "Non-Member", berat: "5Kg", tgl: "5 Oktober 2021", status: "Dibatalkan", layanan: "Cuci Kering", totalHarga: "Rp 35.000", estimasi: "6 Oktober 2021", items: [{ item: "Kiloan", jumlah: "5kg", harga: "Rp7.000", sub: "Rp35.000" }], timeline: ["Order di terima", null, null, null] },
+    { id: 7, nota: "12344321", nama: "Brad Frost", tipe: "Member", berat: "7Kg", tgl: "8 Juni 2022", status: "Selesai", layanan: "Cuci Setrika", totalHarga: "Rp 49.000", estimasi: "9 Juni 2022", items: [{ item: "Kiloan", jumlah: "7kg", harga: "Rp7.000", sub: "Rp49.000" }], timeline: ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"] },
 ];
 
 const weeklyData = [300000, 420000, 380000, 450000, 500000, 480000, 500000];
@@ -27,6 +27,15 @@ function statusColor(status) {
         "Dibatalkan":    "bg-[#ffddd2] text-red-800",
     };
     return map[status] ?? "bg-gray-100 text-gray-700";
+}
+
+// ─── TIPE BADGE ──────────────────────────────────────────────────────────────
+function TipeBadge({ tipe }) {
+    return tipe === "Member" ? (
+        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{tipe}</span>
+    ) : (
+        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">{tipe}</span>
+    );
 }
 
 // ─── LINE CHART SVG ───────────────────────────────────────────────────────────
@@ -90,37 +99,45 @@ function LineChart() {
 }
 
 // ─── STATUS CARD ──────────────────────────────────────────────────────────────
-function StatusCard({ title, value, borderColor, isCurrency, icon: Icon }) {
+function StatusCard({ title, value, borderColor, isCurrency, icon: Icon, iconBg, iconColor }) {
     return (
-        <div className={`bg-white border-2 border-black rounded-xl overflow-hidden flex flex-col shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] relative border-b-[6px] ${borderColor}`}>
-            {/* Ikon di pojok kanan atas */}
-            <div className="absolute top-3 right-3 text-gray-400 opacity-60">
-                {Icon && <Icon size={24} />}
+        <div className={`bg-white border-2 border-black rounded-xl overflow-hidden flex flex-col shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] relative border-b-[5px] ${borderColor}`}>
+            {/* Ikon di pojok kanan atas dengan latar belakang halus */}
+            <div className={`absolute top-4 right-4 w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
+                {Icon && <Icon size={20} className={iconColor} />}
             </div>
-            <div className="flex-1 px-4 py-3 z-10">
-                <p className="text-[10px] font-black leading-tight text-gray-500 uppercase tracking-tighter mb-1 pr-6">{title}</p>
-                <p className={`font-black text-gray-900 ${isCurrency ? "text-lg leading-tight" : "text-3xl"}`}>{value}</p>
+            <div className="flex-1 px-5 py-4 z-10">
+                <p className="text-[10px] font-black leading-tight text-gray-500 uppercase tracking-tighter mb-1 pr-10">{title}</p>
+                <p className={`font-black text-gray-900 ${isCurrency ? "text-xl leading-tight" : "text-3xl"}`}>{value}</p>
             </div>
         </div>
     );
 }
 
 // ─── MODAL KONFIRMASI HAPUS ───────────────────────────────────────────────────
-function ConfirmDeleteModal({ onConfirm, onCancel }) {
+function ConfirmDeleteModal({ onConfirm, onCancel, itemNota, itemNama }) {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <div className="bg-white rounded-2xl shadow-2xl px-10 py-8 max-w-sm w-full mx-4 text-center border border-gray-200">
-                <p className="text-2xl font-black text-gray-900 mb-8">Apakah anda yakin menghapus ini?</p>
-                <div className="flex justify-center gap-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center border border-gray-200">
+                <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Trash2 size={28} className="text-red-500" />
+                </div>
+                <h3 className="text-xl font-extrabold text-gray-800 mb-2">Apakah anda yakin menghapus ini?</h3>
+                {itemNota && itemNama && (
+                    <p className="text-sm text-gray-400 mb-6">
+                        Transaksi <span className="font-bold text-gray-600">{itemNota}</span> · {itemNama}
+                    </p>
+                )}
+                <div className="flex gap-3 mt-4">
                     <button
                         onClick={onConfirm}
-                        className="px-6 py-2 rounded-full border-2 border-red-500 text-red-500 font-bold hover:bg-red-50 transition-colors"
+                        className="flex-1 bg-red-50 border-2 border-red-400 text-red-500 py-2.5 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors"
                     >
                         Hapus
                     </button>
                     <button
                         onClick={onCancel}
-                        className="px-6 py-2 rounded-full border-2 border-[#00b4d8] text-[#00b4d8] font-bold hover:bg-cyan-50 transition-colors"
+                        className="flex-1 border-2 border-[#00b4d8] text-[#00b4d8] py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors"
                     >
                         Kembali
                     </button>
@@ -185,8 +202,16 @@ function DetailModal({ row, onClose, onDelete }) {
                     <ConfirmDeleteModal
                         onConfirm={() => { setShowConfirmDelete(false); onDelete(row.id); onClose(); }}
                         onCancel={() => setShowConfirmDelete(false)}
+                        itemNota={row.nota}
+                        itemNama={row.nama}
                     />
                 )}
+                
+                {/* Tombol Tutup X di kanan atas */}
+                <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition">
+                    <X size={24} />
+                </button>
+
                 <div className="flex gap-8">
                     <div className="flex-1">
                         <h2 className="text-2xl font-black text-gray-900 mb-4">Detail Transaksi</h2>
@@ -256,7 +281,7 @@ function DetailModal({ row, onClose, onDelete }) {
                             </button>
                         </div>
                     </div>
-                    <div className="w-52 flex-shrink-0">
+                    <div className="w-52 flex-shrink-0 mt-8">
                         <div className="mb-4">
                             <span className="text-sm font-bold text-gray-700">Status : </span>
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor(row.status)}`}>
@@ -275,31 +300,32 @@ function DetailModal({ row, onClose, onDelete }) {
 function TableRow({ row, no, idx, onDelete, onDetail }) {
     return (
         <tr className={`transition hover:bg-blue-100/50 ${idx % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
-            <td className="p-3 text-center border border-black text-sm">{no}</td>
-            <td className="p-3 text-center border border-black text-sm font-mono">{row.nota}</td>
-            <td className="p-3 text-center border border-black text-sm font-medium">{row.nama}</td>
-            <td className="p-3 text-center border border-black text-sm">{row.berat}</td>
-            <td className="p-3 text-center border border-black text-sm">{row.tgl}</td>
-            <td className="p-3 text-center border border-black text-center">
+            <td className="px-4 py-3 text-center border border-black text-sm">{no}</td>
+            <td className="px-4 py-3 text-center border border-black text-sm font-mono">{row.nota}</td>
+            <td className="px-4 py-3 text-center border border-black text-sm font-medium">{row.nama}</td>
+            <td className="px-4 py-3 text-center border border-black"><TipeBadge tipe={row.tipe} /></td>
+            <td className="px-4 py-3 text-center border border-black text-sm">{row.berat}</td>
+            <td className="px-4 py-3 text-center border border-black text-sm">{row.estimasi}</td>
+            <td className="px-4 py-3 text-center border border-black">
                 <span className={`px-3 py-1 rounded-md text-[11px] font-bold inline-block ${statusColor(row.status)}`}>
                     {row.status}
                 </span>
             </td>
-            <td className="p-3 border border-black">
-                <div className="flex justify-center gap-2">
+            <td className="px-4 py-3 text-center border border-black">
+                <div className="flex items-center justify-center gap-2">
                     <button
                         onClick={() => onDelete(row)}
-                        className="bg-red-500 text-white p-1.5 rounded-md hover:bg-red-600 transition-colors"
+                        className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors"
                         title="Hapus"
                     >
-                        <Trash2 size={15} />
+                        <Trash2 size={14} />
                     </button>
                     <button
                         onClick={() => onDetail(row)}
-                        className="bg-[#00b4d8] text-white p-1.5 rounded-md hover:bg-[#0096c7] transition-colors"
+                        className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors"
                         title="Detail"
                     >
-                        <Eye size={15} />
+                        <Eye size={14} />
                     </button>
                 </div>
             </td>
@@ -312,7 +338,7 @@ export default function Dashboard() {
     const [data, setData] = useState(transaksiData);
     const [page, setPage] = useState(1);
     const perPage = 7;
-    const totalPages = Math.ceil(data.length / perPage);
+    const totalPages = Math.max(1, Math.ceil(data.length / perPage));
     const pageData = data.slice((page - 1) * perPage, page * perPage);
 
     const [confirmDelete, setConfirmDelete] = useState(null);
@@ -329,6 +355,8 @@ export default function Dashboard() {
                 <ConfirmDeleteModal
                     onConfirm={() => handleDelete(confirmDelete.id)}
                     onCancel={() => setConfirmDelete(null)}
+                    itemNota={confirmDelete.nota}
+                    itemNama={confirmDelete.nama}
                 />
             )}
 
@@ -341,10 +369,15 @@ export default function Dashboard() {
                 />
             )}
 
-            {/* Greeting */}
+            {/* Greeting (Logo Mesin Cuci) */}
             <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow w-full">
               <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+                <path d="M4 6h16" />
+                <circle cx="12" cy="14" r="5" />
+                <path d="M9.5 14.5c.8-.8 1.7-.8 2.5 0s1.7.8 2.5 0" />
+                <circle cx="16" cy="4" r="0.5" fill="currentColor" />
+                <circle cx="18" cy="4" r="0.5" fill="currentColor" />
               </svg>
               <h1 className="text-xl font-bold">Halo Admin</h1>
             </div>
@@ -364,62 +397,112 @@ export default function Dashboard() {
                     <div className="col-span-4 flex flex-col gap-3">
                         <p className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Status Cards</p>
                         <div className="grid grid-cols-2 gap-3 flex-1">
-                            <StatusCard title="TOTAL ORDER HARI INI" value="50" borderColor="border-b-[#00b4d8]" icon={ShoppingBag} />
-                            <StatusCard title="CUCIAN PROSES"        value="25" borderColor="border-b-[#f9a826]" icon={Clock} />
-                            <StatusCard title="SELESAI"              value="25" borderColor="border-b-[#2a9d8f]" icon={CheckCircle2} />
-                            <StatusCard title="OMZET HARI INI"       value="Rp 500.000" borderColor="border-b-[#E67E22]" isCurrency icon={TrendingUp} />
+                            {/* Card 1: Biru Royal */}
+                            <StatusCard 
+                                title="TOTAL ORDER" 
+                                value="50" 
+                                borderColor="border-b-[#3b82f6]" 
+                                iconBg="bg-blue-50" 
+                                iconColor="text-blue-500" 
+                                icon={ShoppingBag} 
+                            />
+                            {/* Card 2: Oranye Hangat */}
+                            <StatusCard 
+                                title="CUCIAN PROSES" 
+                                value="25" 
+                                borderColor="border-b-[#f97316]" 
+                                iconBg="bg-orange-50" 
+                                iconColor="text-orange-500" 
+                                icon={Clock} 
+                            />
+                            {/* Card 3: Hijau Emerald */}
+                            <StatusCard 
+                                title="SELESAI" 
+                                value="25" 
+                                borderColor="border-b-[#10b981]" 
+                                iconBg="bg-emerald-50" 
+                                iconColor="text-emerald-500" 
+                                icon={CheckCircle2} 
+                            />
+                            {/* Card 4: Ungu Elegan */}
+                            <StatusCard 
+                                title="OMZET HARI INI" 
+                                value="Rp 500.000" 
+                                borderColor="border-b-[#8b5cf6]" 
+                                iconBg="bg-purple-50" 
+                                iconColor="text-purple-500" 
+                                isCurrency 
+                                icon={TrendingUp} 
+                            />
                         </div>
                     </div>
                 </div>
 
                 {/* ── BOTTOM: Tabel Transaksi ── */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-black">
-                    <h2 className="font-extrabold text-gray-800 mb-5 text-sm">Tabel Transaksi Terbaru</h2>
+                <div className="bg-white rounded-2xl shadow-sm border border-black overflow-hidden">
+                    
+                    {/* Header Tabel & Tombol Lihat Semua (window.location.href) */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-black bg-white">
+                        <h2 className="font-extrabold text-gray-800 text-base">Tabel Transaksi Terbaru</h2>
+                        
+                        <button 
+                            onClick={() => window.location.href = '/admin/orders'}
+                            className="flex items-center gap-1 text-sm font-bold text-[#0077b6] hover:text-[#005f92] transition-colors cursor-pointer"
+                        >
+                            Lihat Semua <ChevronRight size={16} />
+                        </button>
+                    </div>
 
-                    <div className="overflow-hidden rounded-lg border border-black">
-                        <table className="w-full text-left border-collapse border border-black">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm border-collapse border border-black">
                             <thead>
-                                <tr className="bg-[#0077b6] text-white text-sm">
-                                    {["No", "NOTA", "Nama", "Berat", "Pengambilan", "Status", "Aksi"].map((h) => (
-                                        <th key={h} className={`p-3 font-semibold border border-black ${h === "No" || h === "Aksi" ? "text-center w-14" : "text-center"}`}>
+                                <tr className="bg-[#0077b6] text-white">
+                                    {["No", "NOTA", "Nama", "Tipe", "Berat", "Estimasi Selesai", "Status", "Aksi"].map((h) => (
+                                        <th key={h} className={`px-4 py-3 font-semibold border border-black ${h === "No" || h === "Aksi" ? "text-center w-14" : "text-center"}`}>
                                             {h}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
-                                {pageData.map((row, i) => (
-                                    <TableRow
-                                        key={row.id}
-                                        row={row}
-                                        no={(page - 1) * perPage + i + 1}
-                                        idx={i}
-                                        onDelete={(r) => setConfirmDelete(r)}
-                                        onDetail={(r) => setDetailRow(r)}
-                                    />
-                                ))}
+                                {pageData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="text-center py-10 text-gray-400 border border-black">Tidak ada data ditemukan</td>
+                                    </tr>
+                                ) : (
+                                    pageData.map((row, i) => (
+                                        <TableRow
+                                            key={row.id}
+                                            row={row}
+                                            no={(page - 1) * perPage + i + 1}
+                                            idx={i}
+                                            onDelete={(r) => setConfirmDelete(r)}
+                                            onDetail={(r) => setDetailRow(r)}
+                                        />
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
 
                     {/* Pagination */}
-                    <div className="flex justify-end mt-4 gap-1 items-center">
+                    <div className="flex items-center justify-end gap-1 px-6 py-4 border-t border-black bg-white">
                         <button
                             onClick={() => setPage((p) => Math.max(1, p - 1))}
                             disabled={page === 1}
-                            className="px-3 py-1 border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                            className="px-3 py-1.5 rounded-lg text-sm border border-black text-gray-500 hover:bg-gray-50 disabled:opacity-40 flex items-center gap-1"
                         >
-                            Sebelumnya
+                            <ChevronLeft size={14} /> Sebelumnya
                         </button>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
                             <button
                                 key={n}
                                 onClick={() => setPage(n)}
-                                className={`px-3 py-1 rounded text-xs font-bold border transition-colors
-                                    ${n === page
-                                        ? "bg-[#00b4d8] text-white border-[#00b4d8]"
-                                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                                    }`}
+                                className={`w-8 h-8 rounded-lg text-sm font-semibold transition ${
+                                    n === page
+                                        ? "bg-[#0077b6] text-white"
+                                        : "border border-black text-gray-600 hover:bg-gray-50"
+                                }`}
                             >
                                 {n}
                             </button>
@@ -427,9 +510,9 @@ export default function Dashboard() {
                         <button
                             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                             disabled={page === totalPages}
-                            className="px-3 py-1 border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                            className="px-3 py-1.5 rounded-lg text-sm border border-black text-gray-500 hover:bg-gray-50 disabled:opacity-40 flex items-center gap-1"
                         >
-                            Selanjutnya
+                            Selanjutnya <ChevronRight size={14} />
                         </button>
                     </div>
                 </div>
