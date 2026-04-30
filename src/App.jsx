@@ -12,8 +12,9 @@ import AdminDashboard       from './Pages/Admin/dashboard';
 import AdminNewTransaction  from './Pages/Admin/New-Transaction';
 import OrderList            from './pages/Admin/OrderList';
 import CustomerData         from './pages/Admin/CustomerData';
-import Notifikasi           from './pages/Admin/Notifikasi';
+import Notifications        from './pages/Admin/Notifications';
 import Chat                 from './pages/Admin/Chat';
+import Reports              from './pages/Admin/Reports';
 import CustomerDashboard    from './Pages/Customer/dashboard';
 
 // ── Guard: hanya bisa diakses kalau sudah login ────────
@@ -77,17 +78,21 @@ function AppRoutes() {
       <Route path="/admin/customers" element={
       <ProtectedRoute role="admin"><CustomerData /></ProtectedRoute>
       } />
-      <Route path="/admin/notifikasi" element={
-      <ProtectedRoute role="admin"><Notifikasi /></ProtectedRoute>
+      <Route path="/admin/notifications" element={
+      <ProtectedRoute role="admin"><Notifications /></ProtectedRoute>
+      } />
+      <Route path="/admin/chat" element={
+      <ProtectedRoute role="admin"><Chat /></ProtectedRoute>
+      } />
+      <Route path="/admin/reports" element={
+      <ProtectedRoute role="admin"><Reports /></ProtectedRoute>
       } />
 
       {/* Customer */}
       <Route path="/customer/dashboard" element={
         <ProtectedRoute role="customer"><CustomerDashboard /></ProtectedRoute>
       } />
-      <Route path="/admin/chat" element={
-     <ProtectedRoute role="admin"><Chat /></ProtectedRoute>
-      } />
+
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
