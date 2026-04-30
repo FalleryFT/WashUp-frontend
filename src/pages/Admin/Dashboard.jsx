@@ -2,7 +2,7 @@
 import { useState } from "react";
 import AdminSidebar from "../../components/AdminSidebar";
 import { useAuth } from "../../context/AuthContext";
-import { Printer, Trash2, Eye } from "lucide-react";
+import { Printer, Trash2, Eye, ShoppingBag, Clock, CheckCircle2, TrendingUp } from "lucide-react";
 
 // ─── DATA DUMMY ───────────────────────────────────────────────────────────────
 const transaksiData = [
@@ -43,13 +43,11 @@ function LineChart() {
     const polyline = weeklyData.map((v, i) => `${x(i)},${y(v)}`).join(" ");
     const area = `${x(0)},${y(0)} ${polyline} ${x(weeklyData.length - 1)},${y(0)}`;
 
-    // tooltip state
     const [tooltip, setTooltip] = useState(null);
 
     return (
         <div className="relative">
             <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
-                {/* Y grid lines + labels */}
                 {yTicks.map((t) => (
                     <g key={t}>
                         <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)} stroke="#e5e7eb" strokeWidth="1" />
@@ -58,19 +56,11 @@ function LineChart() {
                         </text>
                     </g>
                 ))}
-
-                {/* Y axis label */}
                 <text x={10} y={H / 2} textAnchor="middle" fontSize="10" fill="#6b7280" transform={`rotate(-90, 10, ${H / 2})`}>
                     Pendapatan (Rp)
                 </text>
-
-                {/* Area fill */}
                 <polygon points={area} fill="#00b4d8" fillOpacity="0.08" />
-
-                {/* Line */}
                 <polyline points={polyline} fill="none" stroke="#0077b6" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-
-                {/* Dots + hover areas */}
                 {weeklyData.map((v, i) => (
                     <g key={i}
                         onMouseEnter={() => setTooltip({ i, v })}
@@ -81,8 +71,6 @@ function LineChart() {
                         <circle cx={x(i)} cy={y(v)} r="5" fill="white" stroke="#0077b6" strokeWidth="2.5" />
                     </g>
                 ))}
-
-                {/* Tooltip */}
                 {tooltip && (() => {
                     const tx = x(tooltip.i);
                     const ty = y(tooltip.v);
@@ -102,14 +90,17 @@ function LineChart() {
 }
 
 // ─── STATUS CARD ──────────────────────────────────────────────────────────────
-function StatusCard({ title, value, barColor, isCurrency }) {
+function StatusCard({ title, value, borderColor, isCurrency, icon: Icon }) {
     return (
-        <div className="bg-white border-2 border-black rounded-xl overflow-hidden flex flex-col shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)]">
-            <div className="flex-1 px-3 py-2">
-                <p className="text-[9px] font-black leading-tight text-gray-700 uppercase tracking-tighter mb-1">{title}</p>
-                <p className={`font-black text-gray-900 ${isCurrency ? "text-base leading-tight" : "text-3xl"}`}>{value}</p>
+        <div className={`bg-white border-2 border-black rounded-xl overflow-hidden flex flex-col shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] relative border-b-[6px] ${borderColor}`}>
+            {/* Ikon di pojok kanan atas */}
+            <div className="absolute top-3 right-3 text-gray-400 opacity-60">
+                {Icon && <Icon size={24} />}
             </div>
-            <div className={`h-5 w-full border-t-2 border-black ${barColor}`} />
+            <div className="flex-1 px-4 py-3 z-10">
+                <p className="text-[10px] font-black leading-tight text-gray-500 uppercase tracking-tighter mb-1 pr-6">{title}</p>
+                <p className={`font-black text-gray-900 ${isCurrency ? "text-lg leading-tight" : "text-3xl"}`}>{value}</p>
+            </div>
         </div>
     );
 }
@@ -148,7 +139,6 @@ const timelineSteps = [
 ];
 
 function Timeline({ activeSteps }) {
-    // activeSteps: array of labels yang sudah tercapai
     return (
         <div className="flex flex-col gap-0">
             {timelineSteps.map((step, i) => {
@@ -156,11 +146,9 @@ function Timeline({ activeSteps }) {
                 const current = done && (i === activeSteps.length - 1 || !activeSteps.includes(timelineSteps[i + 1]?.label));
                 return (
                     <div key={i} className="flex items-start gap-3 relative">
-                        {/* Line connector */}
                         {i < timelineSteps.length - 1 && (
                             <div className={`absolute left-[10px] top-5 w-0.5 h-10 ${done && activeSteps.includes(timelineSteps[i + 1]?.label) ? "bg-green-500" : "bg-gray-200"}`} />
                         )}
-                        {/* Dot */}
                         <div className={`mt-1 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center z-10
                             ${done
                                 ? current
@@ -170,7 +158,6 @@ function Timeline({ activeSteps }) {
                         >
                             {done && !current && <div className="w-2 h-2 rounded-full bg-white" />}
                         </div>
-                        {/* Label */}
                         <div className="pb-8">
                             <p className={`text-sm font-bold ${done ? "text-gray-900" : "text-gray-400"}`}>{step.label}</p>
                             <p className={`text-xs ${done ? "text-gray-500" : "text-gray-300"}`}>{step.sub}</p>
@@ -194,21 +181,15 @@ function DetailModal({ row, onClose, onDelete }) {
     return (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 p-8 relative border border-gray-200">
-
-                {/* Confirm delete nested */}
                 {showConfirmDelete && (
                     <ConfirmDeleteModal
                         onConfirm={() => { setShowConfirmDelete(false); onDelete(row.id); onClose(); }}
                         onCancel={() => setShowConfirmDelete(false)}
                     />
                 )}
-
                 <div className="flex gap-8">
-                    {/* LEFT: Info + Tabel Item */}
                     <div className="flex-1">
                         <h2 className="text-2xl font-black text-gray-900 mb-4">Detail Transaksi</h2>
-
-                        {/* Info rows */}
                         {[
                             ["Nota",            row.nota],
                             ["Layanan",         row.layanan],
@@ -225,29 +206,29 @@ function DetailModal({ row, onClose, onDelete }) {
                             </div>
                         ))}
 
-                        {/* Item table */}
-                        <div className="mt-3 rounded-lg overflow-hidden border border-gray-200">
-                            <table className="w-full text-sm text-left">
+                        {/* Tabel Item Seragam */}
+                        <div className="mt-3 rounded-lg overflow-hidden border border-black">
+                            <table className="w-full text-sm text-left border-collapse border border-black">
                                 <thead>
                                     <tr className="bg-[#00b4d8] text-white">
-                                        <th className="px-3 py-2 font-semibold">Item</th>
-                                        <th className="px-3 py-2 font-semibold">Jumlah</th>
-                                        <th className="px-3 py-2 font-semibold">Harga satuan</th>
-                                        <th className="px-3 py-2 font-semibold">Sub Total</th>
+                                        <th className="px-3 py-2 font-semibold border border-black">Item</th>
+                                        <th className="px-3 py-2 font-semibold border border-black text-right">Jumlah</th>
+                                        <th className="px-3 py-2 font-semibold border border-black text-right">Harga satuan</th>
+                                        <th className="px-3 py-2 font-semibold border border-black text-right">Sub Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {row.items.map((it, i) => (
-                                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                                            <td className="px-3 py-1.5 text-gray-800">{it.item}</td>
-                                            <td className="px-3 py-1.5 text-gray-800">{it.jumlah}</td>
-                                            <td className="px-3 py-1.5 text-gray-800">{it.harga}</td>
-                                            <td className="px-3 py-1.5 text-gray-800">{it.sub}</td>
+                                        <tr key={i} className={`transition hover:bg-blue-100/50 ${i % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
+                                            <td className="px-3 py-1.5 text-gray-800 border border-black">{it.item}</td>
+                                            <td className="px-3 py-1.5 text-gray-800 border border-black text-right">{it.jumlah}</td>
+                                            <td className="px-3 py-1.5 text-gray-800 border border-black text-right">{it.harga}</td>
+                                            <td className="px-3 py-1.5 text-gray-800 border border-black text-right font-medium">{it.sub}</td>
                                         </tr>
                                     ))}
                                     <tr className="bg-gray-50">
-                                        <td colSpan={3} className="px-3 py-1.5 font-bold text-gray-800">Total</td>
-                                        <td className="px-3 py-1.5 font-bold text-gray-900">
+                                        <td colSpan={3} className="px-3 py-1.5 font-bold text-gray-800 border border-black text-right">Total</td>
+                                        <td className="px-3 py-1.5 font-bold text-[#0077b6] border border-black text-right">
                                             Rp{totalNum.toLocaleString("id-ID")}
                                         </td>
                                     </tr>
@@ -255,7 +236,6 @@ function DetailModal({ row, onClose, onDelete }) {
                             </table>
                         </div>
 
-                        {/* Action buttons */}
                         <div className="flex justify-between mt-4">
                             <div className="flex gap-2">
                                 <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border-2 border-gray-400 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">
@@ -276,8 +256,6 @@ function DetailModal({ row, onClose, onDelete }) {
                             </button>
                         </div>
                     </div>
-
-                    {/* RIGHT: Status + Timeline */}
                     <div className="w-52 flex-shrink-0">
                         <div className="mb-4">
                             <span className="text-sm font-bold text-gray-700">Status : </span>
@@ -294,20 +272,20 @@ function DetailModal({ row, onClose, onDelete }) {
 }
 
 // ─── TABLE ROW ────────────────────────────────────────────────────────────────
-function TableRow({ row, no, onDelete, onDetail }) {
+function TableRow({ row, no, idx, onDelete, onDetail }) {
     return (
-        <tr className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="p-3 text-center border-r border-gray-100 text-sm">{no}</td>
-            <td className="p-3 border-r border-gray-100 text-sm">{row.nota}</td>
-            <td className="p-3 border-r border-gray-100 text-sm">{row.nama}</td>
-            <td className="p-3 border-r border-gray-100 text-sm">{row.berat}</td>
-            <td className="p-3 border-r border-gray-100 text-sm">{row.tgl}</td>
-            <td className="p-3 border-r border-gray-100 text-center">
+        <tr className={`transition hover:bg-blue-100/50 ${idx % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
+            <td className="p-3 text-center border border-black text-sm">{no}</td>
+            <td className="p-3 text-center border border-black text-sm font-mono">{row.nota}</td>
+            <td className="p-3 text-center border border-black text-sm font-medium">{row.nama}</td>
+            <td className="p-3 text-center border border-black text-sm">{row.berat}</td>
+            <td className="p-3 text-center border border-black text-sm">{row.tgl}</td>
+            <td className="p-3 text-center border border-black text-center">
                 <span className={`px-3 py-1 rounded-md text-[11px] font-bold inline-block ${statusColor(row.status)}`}>
                     {row.status}
                 </span>
             </td>
-            <td className="p-3">
+            <td className="p-3 border border-black">
                 <div className="flex justify-center gap-2">
                     <button
                         onClick={() => onDelete(row)}
@@ -337,9 +315,8 @@ export default function Dashboard() {
     const totalPages = Math.ceil(data.length / perPage);
     const pageData = data.slice((page - 1) * perPage, page * perPage);
 
-    // Modal state
-    const [confirmDelete, setConfirmDelete] = useState(null); // row object
-    const [detailRow, setDetailRow]         = useState(null); // row object
+    const [confirmDelete, setConfirmDelete] = useState(null);
+    const [detailRow, setDetailRow]         = useState(null);
 
     const handleDelete = (id) => {
         setData((prev) => prev.filter((r) => r.id !== id));
@@ -348,7 +325,6 @@ export default function Dashboard() {
 
     return (
         <AdminSidebar>
-            {/* ── Konfirmasi hapus dari tabel ── */}
             {confirmDelete && (
                 <ConfirmDeleteModal
                     onConfirm={() => handleDelete(confirmDelete.id)}
@@ -356,7 +332,6 @@ export default function Dashboard() {
                 />
             )}
 
-            {/* ── Detail transaksi ── */}
             {detailRow && (
                 <DetailModal
                     row={detailRow}
@@ -367,18 +342,15 @@ export default function Dashboard() {
             )}
 
             {/* Greeting */}
-        <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow">
-          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-          </svg>
-          <h1 className="text-xl font-bold">Halo Admin</h1>
-        </div>
+            <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow w-full">
+              <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+              </svg>
+              <h1 className="text-xl font-bold">Halo Admin</h1>
+            </div>
 
             <div className="space-y-6">
-                {/* ── TOP: Grafik + Status Cards ── */}
                 <div className="grid grid-cols-12 gap-6">
-
-                    {/* Grafik */}
                     <div className="col-span-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                         <h2 className="font-extrabold text-gray-800 text-sm uppercase tracking-wide mb-3">
                             Grafik Pendapatan Mingguan
@@ -389,28 +361,27 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Status Cards */}
                     <div className="col-span-4 flex flex-col gap-3">
                         <p className="font-extrabold text-gray-800 text-sm uppercase tracking-wide">Status Cards</p>
                         <div className="grid grid-cols-2 gap-3 flex-1">
-                            <StatusCard title="TOTAL ORDER HARI INI" value="50"             barColor="bg-[#00b4d8]" />
-                            <StatusCard title="CUCIAN PROSES"        value="25"             barColor="bg-[#f9f871]" />
-                            <StatusCard title="SELESAI"              value="25"             barColor="bg-[#d5f5e3]" />
-                            <StatusCard title="OMZET HARI INI"        value="Rp 500.000,00"  barColor="bg-white" isCurrency />
+                            <StatusCard title="TOTAL ORDER HARI INI" value="50" borderColor="border-b-[#00b4d8]" icon={ShoppingBag} />
+                            <StatusCard title="CUCIAN PROSES"        value="25" borderColor="border-b-[#f9a826]" icon={Clock} />
+                            <StatusCard title="SELESAI"              value="25" borderColor="border-b-[#2a9d8f]" icon={CheckCircle2} />
+                            <StatusCard title="OMZET HARI INI"       value="Rp 500.000" borderColor="border-b-[#E67E22]" isCurrency icon={TrendingUp} />
                         </div>
                     </div>
                 </div>
 
                 {/* ── BOTTOM: Tabel Transaksi ── */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-black">
                     <h2 className="font-extrabold text-gray-800 mb-5 text-sm">Tabel Transaksi Terbaru</h2>
 
-                    <div className="overflow-hidden rounded-lg border border-gray-200">
-                        <table className="w-full text-left border-collapse">
+                    <div className="overflow-hidden rounded-lg border border-black">
+                        <table className="w-full text-left border-collapse border border-black">
                             <thead>
-                                <tr className="bg-[#00b4d8] text-white text-sm">
+                                <tr className="bg-[#0077b6] text-white text-sm">
                                     {["No", "NOTA", "Nama", "Berat", "Pengambilan", "Status", "Aksi"].map((h) => (
-                                        <th key={h} className={`p-3 font-semibold border-r border-white/20 last:border-r-0 ${h === "No" || h === "Aksi" ? "text-center w-14" : ""}`}>
+                                        <th key={h} className={`p-3 font-semibold border border-black ${h === "No" || h === "Aksi" ? "text-center w-14" : "text-center"}`}>
                                             {h}
                                         </th>
                                     ))}
@@ -422,6 +393,7 @@ export default function Dashboard() {
                                         key={row.id}
                                         row={row}
                                         no={(page - 1) * perPage + i + 1}
+                                        idx={i}
                                         onDelete={(r) => setConfirmDelete(r)}
                                         onDetail={(r) => setDetailRow(r)}
                                     />
