@@ -15,6 +15,7 @@ import CustomerData         from './pages/Admin/CustomerData';
 import Notifications        from './pages/Admin/Notifications';
 import Chat                 from './pages/Admin/Chat';
 import Reports              from './pages/Admin/Reports';
+import PriceSetting         from './pages/Admin/Price';
 import CustomerDashboard    from './Pages/Customer/dashboard';
 
 // ── Guard: hanya bisa diakses kalau sudah login ────────
@@ -86,6 +87,9 @@ function AppRoutes() {
       } />
       <Route path="/admin/reports" element={
       <ProtectedRoute role="admin"><Reports /></ProtectedRoute>
+      } />
+      <Route path="/admin/price" element={
+      <ProtectedRoute role="admin"><PriceSetting /></ProtectedRoute>
       } />
 
       {/* Customer */}
