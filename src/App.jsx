@@ -13,6 +13,7 @@ import AdminNewTransaction  from './Pages/Admin/New-Transaction';
 import OrderList            from './pages/Admin/OrderList';
 import CustomerData         from './pages/Admin/CustomerData';
 import Notifikasi           from './pages/Admin/Notifikasi';
+import Chat                 from './pages/Admin/Chat';
 import CustomerDashboard    from './Pages/Customer/dashboard';
 
 // ── Guard: hanya bisa diakses kalau sudah login ────────
@@ -83,6 +84,9 @@ function AppRoutes() {
       {/* Customer */}
       <Route path="/customer/dashboard" element={
         <ProtectedRoute role="customer"><CustomerDashboard /></ProtectedRoute>
+      } />
+      <Route path="/admin/chat" element={
+     <ProtectedRoute role="admin"><Chat /></ProtectedRoute>
       } />
 
       {/* Fallback */}
