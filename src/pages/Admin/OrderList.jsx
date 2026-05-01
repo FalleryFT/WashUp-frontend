@@ -144,11 +144,10 @@ export default function OrderList() {
   const [data, setData] = useState(initialData);
   const [activeTab, setActiveTab] = useState("SEMUA");
   const [search, setSearch] = useState("");
-  const [filterTipe, setFilterTipe] = useState("Semua Tipe");
   const [page, setPage] = useState(1);
 
-  const [detailItem, setDetailItem] = useState(null);
-  const [deleteItem, setDeleteItem] = useState(null);
+  const [detailItem, setDetailItem] = useState(null);   // for detail popup
+  const [deleteItem, setDeleteItem] = useState(null);   // for delete confirm popup
   const [deleteFromDetail, setDeleteFromDetail] = useState(false);
 
   // ── Filter ──
@@ -163,7 +162,6 @@ export default function OrderList() {
 
   const filtered = data
     .filter(tabFilter)
-    .filter((item) => filterTipe === "Semua Tipe" || item.tipe === filterTipe)
     .filter((item) =>
       item.nama.toLowerCase().includes(search.toLowerCase()) ||
       item.nota.includes(search)
@@ -174,7 +172,6 @@ export default function OrderList() {
 
   const handleTabChange = (tab) => { setActiveTab(tab); setPage(1); };
   const handleSearch = (e) => { setSearch(e.target.value); setPage(1); };
-  const handleFilterTipe = (e) => { setFilterTipe(e.target.value); setPage(1); };
 
   // ── Delete ──
   const openDelete = (item, fromDetail = false) => {
@@ -192,8 +189,9 @@ export default function OrderList() {
     <AdminSidebar>
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow w-full">
-              <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        {/* Greeting yang disamakan dengan Dashboard */}
+        <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow">
+          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
                 <path d="M4 6h16" />
                 <circle cx="12" cy="14" r="5" />
@@ -209,48 +207,28 @@ export default function OrderList() {
         </h1>
       </div>
 
-      {/* TABS & FILTER TIPE (Bersebelahan) */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
-        
-        {/* Tab Status */}
-        <div className="flex gap-1 bg-white rounded-xl shadow-sm border border-black p-1 w-full md:w-fit overflow-x-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                activeTab === tab
-                  ? "bg-[#0077b6] text-white shadow"
-                  : "text-gray-500 hover:bg-gray-50"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Dropdown Filter Tipe Pelanggan */}
-        <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-black px-4 py-2 flex-shrink-0">
-          <span className="text-sm font-bold text-gray-700">Tipe Pelanggan:</span>
-          <select
-            value={filterTipe}
-            onChange={handleFilterTipe}
-            className="text-sm font-bold text-[#0077b6] bg-transparent focus:outline-none cursor-pointer"
+      {/* Tab Filter */}
+      <div className="flex gap-1 mb-5 bg-white rounded-xl shadow-sm border border-black p-1 w-fit">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => handleTabChange(tab)}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === tab
+                ? "bg-[#0077b6] text-white shadow"
+                : "text-gray-500 hover:bg-gray-50"
+            }`}
           >
-            <option value="Semua Tipe">Semua Tipe</option>
-            <option value="Member">Member</option>
-            <option value="Non-Member">Non-Member</option>
-          </select>
-        </div>
-
+            {tab}
+          </button>
+        ))}
       </div>
 
       {/* Table Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-black overflow-hidden">
         {/* Table Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between px-6 py-4 border-b border-black gap-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-black">
           <h2 className="font-bold text-gray-700 text-base">Tabel Transaksi</h2>
-          
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Cari :</span>
             <div className="relative">
@@ -288,6 +266,7 @@ export default function OrderList() {
                 </tr>
               ) : (
                 paginated.map((item, idx) => (
+                  // LOGIKA WARNA SELANG-SELING (Zebra Striping)
                   <tr key={item.id} className={`transition hover:bg-blue-100/50 ${idx % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
                     <td className="px-4 py-3 text-center text-gray-600 border border-black">{(page - 1) * PER_PAGE + idx + 1}</td>
                     <td className="px-4 py-3 text-center font-mono text-gray-700 border border-black">{item.nota}</td>
@@ -363,6 +342,8 @@ export default function OrderList() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-black">
               <h2 className="text-xl font-extrabold text-gray-800">Detail Transaksi</h2>
               <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-500">Status :</span>
+                <StatusBadge status={detailItem.status} />
                 <button onClick={() => setDetailItem(null)} className="text-gray-400 hover:text-gray-600 ml-2">
                   <X size={20} />
                 </button>
@@ -378,6 +359,7 @@ export default function OrderList() {
                     ["Layanan", detailItem.layanan],
                     ["Tanggal Order", detailItem.tgl],
                     ["Nama", detailItem.nama],
+                    ["Tipe Pelanggan", detailItem.tipe],
                     ["Total Berat", detailItem.berat],
                     ["Total Harga", detailItem.totalHarga],
                     ["Estimasi Selesai", detailItem.estimasi],
@@ -385,7 +367,11 @@ export default function OrderList() {
                     <div key={label} className="flex gap-2">
                       <span className="w-36 text-gray-500 font-medium flex-shrink-0">{label}</span>
                       <span className="text-gray-400 flex-shrink-0">:</span>
-                      <span className="font-semibold text-gray-800">{val}</span>
+                      <span className={`font-semibold text-gray-800 ${label === "Tipe Pelanggan" ? "" : ""}`}>
+                        {label === "Tipe Pelanggan"
+                          ? <TipeBadge tipe={val} />
+                          : val}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -403,6 +389,7 @@ export default function OrderList() {
                     </thead>
                     <tbody>
                       {detailItem.items.map((row, i) => (
+                        // LOGIKA WARNA SELANG-SELING (Zebra Striping)
                         <tr key={i} className={`transition hover:bg-blue-100/50 ${i % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
                           <td className="px-3 py-2 text-gray-700 border border-black">{row.item}</td>
                           <td className="px-3 py-2 text-right text-gray-600 border border-black">{row.jumlah}</td>
@@ -440,27 +427,10 @@ export default function OrderList() {
                 </div>
               </div>
 
-              {/* RIGHT: Status & Timeline */}
+              {/* RIGHT: Timeline */}
               <div className="md:w-52 flex-shrink-0">
-                
-                {/* Tipe Pelanggan & Status di sisi Kanan */}
-                <div className="mb-6 flex flex-col gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                  <div>
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Tipe Pelanggan</span>
-                    <TipeBadge tipe={detailItem.tipe} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Status Saat Ini</span>
-                    <StatusBadge status={detailItem.status} />
-                  </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="px-2">
-                  <Timeline timeline={detailItem.timeline} />
-                </div>
+                <Timeline timeline={detailItem.timeline} />
               </div>
-
             </div>
           </div>
         </div>
@@ -471,24 +441,26 @@ export default function OrderList() {
       ══════════════════════════════════════════ */}
       {deleteItem && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center border border-gray-200">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 size={28} className="text-red-500" />
             </div>
-            <h3 className="text-xl font-extrabold text-gray-800 mb-2">Apakah anda yakin menghapus ini?</h3>
+            <h3 className="text-xl font-extrabold text-gray-800 mb-2">
+              Apakah anda yakin menghapus ini?
+            </h3>
             <p className="text-sm text-gray-400 mb-6">
               Transaksi <span className="font-bold text-gray-600">{deleteItem.nota}</span> · {deleteItem.nama}
             </p>
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-3">
               <button
                 onClick={confirmDelete}
-                className="flex-1 bg-red-50 border-2 border-red-400 text-red-500 py-2.5 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors"
+                className="flex-1 bg-red-50 border-2 border-red-400 text-red-500 py-2.5 rounded-xl font-bold text-sm hover:bg-red-100 transition"
               >
                 Hapus
               </button>
               <button
                 onClick={cancelDelete}
-                className="flex-1 border-2 border-[#00b4d8] text-[#00b4d8] py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors"
+                className="flex-1 border-2 border-[#0077b6] text-[#0077b6] py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition"
               >
                 Kembali
               </button>
