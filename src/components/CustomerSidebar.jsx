@@ -55,10 +55,10 @@ function SidebarBody({ url, user, onLogout, onClose }) {
   ];
 
   return (
-    <div className="w-72 bg-[#0077b6] text-white min-h-screen flex flex-col font-sans">
-
+    <div className="w-72 bg-[#0077b6] text-white h-full flex flex-col font-sans overflow-hidden">
+      
       {/* Brand */}
-      <div className="p-6 flex items-center justify-between">
+      <div className="p-6 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <div className="bg-white p-1 rounded-full text-[#0077b6]">
             <Waves size={24} />
@@ -73,7 +73,7 @@ function SidebarBody({ url, user, onLogout, onClose }) {
       </div>
 
       {/* Profile */}
-      <div className="px-6 mb-8 flex items-center gap-3">
+      <div className="px-6 mb-4 flex items-center gap-3 shrink-0">
         <div className="bg-white text-[#0077b6] rounded-full p-2 flex-shrink-0">
           <UserCircle size={20} />
         </div>
@@ -87,23 +87,25 @@ function SidebarBody({ url, user, onLogout, onClose }) {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 flex flex-col">
-        {navItems.map((item) => (
-          <MenuItem
-            key={item.href}
-            href={item.href}
-            icon={item.icon}
-            text={item.text}
-            active={url === item.href}
-          />
-        ))}
-
-        {/* Logout pinned to bottom */}
-        <div className="mt-auto pb-6">
-          <MenuItem icon={<LogOut size={20} />} text="Logout" onClick={onLogout} />
+      {/* Nav (Hanya bagian ini yang bisa di-scroll) */}
+      <nav className="flex-1 overflow-y-auto py-4">
+        <div className="flex flex-col">
+          {navItems.map((item) => (
+            <MenuItem
+              key={item.href}
+              href={item.href}
+              icon={item.icon}
+              text={item.text}
+              active={url === item.href}
+            />
+          ))}
         </div>
       </nav>
+
+      {/* Logout pinned to bottom (polosan tanpa border) */}
+      <div className="shrink-0 bg-[#0077b6] pt-2 pb-6 mt-auto">
+        <MenuItem icon={<LogOut size={20} />} text="Logout" onClick={onLogout} />
+      </div>
     </div>
   );
 }
@@ -118,12 +120,16 @@ export default function CustomerSidebar({ children }) {
   const [open, setOpen] = useState(false);
 
   const handleLogout = async () => {
-    await logout();
-    navigate("/login");
+    try {
+      if (logout) await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
   };
 
   return (
-    <>
+    <div className="flex min-h-screen bg-gray-50 relative">
       {/* Mobile hamburger */}
       <button
         onClick={() => setOpen(true)}
@@ -140,9 +146,9 @@ export default function CustomerSidebar({ children }) {
         />
       )}
 
-      {/* Mobile drawer */}
-      <div
-        className={`md:hidden fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ${
+      {/* Sidebar Drawer & Desktop Sticky */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 h-screen transform transition-transform duration-300 md:sticky md:top-0 md:translate-x-0 shrink-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -152,12 +158,12 @@ export default function CustomerSidebar({ children }) {
           onLogout={handleLogout}
           onClose={() => setOpen(false)}
         />
-      </div>
+      </aside>
 
-      {/* Desktop sidebar */}
-      <div className="hidden md:block flex-shrink-0">
-        <SidebarBody url={pathname} user={user} onLogout={handleLogout} />
-      </div>
-    </>
+      {/* Main Content Area */}
+      <main className="flex-1 w-full p-4 md:p-8 pt-20 md:pt-8 min-h-screen overflow-x-hidden">
+        {children}
+      </main>
+    </div>
   );
 }
