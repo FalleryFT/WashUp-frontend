@@ -1,8 +1,12 @@
 // src/api/axios.js
 import axios from 'axios';
 
+// Baca dari .env — pastikan file .env ada di root folder frontend
+// dan isinya: VITE_API_URL=http://localhost:8000/api
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
+
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -10,7 +14,7 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Interceptor: tambahkan token ke setiap request
+// Interceptor: sisipkan token Bearer ke setiap request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -19,7 +23,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor: handle 401 (token expired)
+// Interceptor: token expired → redirect ke login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
