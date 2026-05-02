@@ -21,6 +21,7 @@ import Track                from './Pages/Customer/Track';
 import History              from './Pages/Customer/History';
 import Notification         from './pages/Customer/Notifications';
 import CustomerChat         from './pages/Customer/Chat';
+import Profile               from './pages/Customer/Profile';
 
 // ── Guard: hanya bisa diakses kalau sudah login ────────
 const ProtectedRoute = ({ children, role }) => {
@@ -111,6 +112,9 @@ function AppRoutes() {
       } />
       <Route path="/customer/chat" element={
       <ProtectedRoute role="customer"><CustomerChat /></ProtectedRoute>
+      } />
+      <Route path="/customer/Profile" element={
+      <ProtectedRoute role="customer"><Profile /></ProtectedRoute>
       } />
 
       {/* Fallback */}
