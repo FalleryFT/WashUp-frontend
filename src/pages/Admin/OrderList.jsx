@@ -316,8 +316,9 @@ export default function OrderList() {
             <button
               key={p}
               onClick={() => setPage(p)}
-              className={`w-8 h-8 rounded-lg text-sm font-semibold transition ${page === p ? "bg-[#0077b6] text-white" : "border border-black text-gray-600 hover:bg-gray-50"
-                }`}
+              className={`w-8 h-8 rounded-lg text-sm font-semibold transition ${
+                page === p ? "bg-[#0077b6] text-white" : "border border-black text-gray-600 hover:bg-gray-50"
+              }`}
             >
               {p}
             </button>
@@ -412,7 +413,7 @@ export default function OrderList() {
                       </button>
                     )}
                   </div>
-
+                  
                   {/* Tombol Fase Berikutnya */}
                   <div className="flex gap-2">
                     {detailItem.status !== "Selesai" && detailItem.status !== "Dibatalkan" && (
