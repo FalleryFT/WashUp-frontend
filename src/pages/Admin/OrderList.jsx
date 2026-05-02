@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
 import AdminSidebar from "../../components/AdminSidebar";
-import api from "../../api/axios"; //
+import api from "../../api/axios"; 
 import { Search, Printer, Trash2, Eye, X, ChevronLeft, ChevronRight, ArrowRightCircle } from "lucide-react";
 
 // Sesuai dengan label timeline dan status pada database
 const TIMELINE_LABELS = ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"];
-const TABS = ["SEMUA", "PROSES", "SIAP AMBIL", "SELESAI", "DIBATALKAN"];
+const TABS = ["SEMUA", "Order Diterima", "Sedang DiPilah", "Sedang DiCuci", "SIAP AMBIL", "SELESAI", "DIBATALKAN"];
 const PER_PAGE = 10;
 
 function StatusBadge({ status }) {
   const map = {
     "Order Diterima": "bg-blue-100 text-blue-700",
     "Sedang Di Pilah": "bg-purple-100 text-purple-700",
-    "Sedang Dicuci":  "bg-yellow-100 text-yellow-700",
-    "Siap Diambil":   "bg-cyan-100 text-cyan-700",
-    "Selesai":        "bg-green-100 text-green-700",
-    "Dibatalkan":     "bg-red-100 text-red-700",
+    "Sedang Dicuci": "bg-yellow-100 text-yellow-700",
+    "Siap Diambil": "bg-cyan-100 text-cyan-700",
+    "Selesai": "bg-green-100 text-green-700",
+    "Dibatalkan": "bg-red-100 text-red-700",
   };
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${map[status] ?? "bg-gray-100 text-gray-600"}`}>
@@ -66,6 +66,7 @@ export default function OrderList() {
   const [activeTab, setActiveTab] = useState("SEMUA");
   const [search, setSearch] = useState("");
   const [filterTipe, setFilterTipe] = useState("Semua Tipe");
+  const [sort, setSort] = useState("latest"); // State baru untuk sorting
   const [page, setPage] = useState(1);
 
   const [detailItem, setDetailItem] = useState(null);
@@ -79,14 +80,13 @@ export default function OrderList() {
         params: {
           search,
           status: activeTab,
-          customer_type: filterTipe
+          customer_type: filterTipe,
+          sort // Kirim parameter sort ke backend
         }
       });
       if (response.data.success) {
         setData(response.data.data);
-        
-        // JIKA DETAIL POPUP SEDANG TERBUKA:
-        // Update data detail secara real-time agar progres timeline langsung berubah
+
         if (detailItem) {
           const updatedDetail = response.data.data.find(o => o.id === detailItem.id);
           if (updatedDetail) {
@@ -103,7 +103,7 @@ export default function OrderList() {
 
   useEffect(() => {
     fetchOrders();
-  }, [activeTab, search, filterTipe]);
+  }, [activeTab, search, filterTipe, sort]); // Tambahkan sort ke dependency array
 
   const totalPages = Math.max(1, Math.ceil(data.length / PER_PAGE));
   const paginated = data.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -111,6 +111,7 @@ export default function OrderList() {
   const handleTabChange = (tab) => { setActiveTab(tab); setPage(1); };
   const handleSearch = (e) => { setSearch(e.target.value); setPage(1); };
   const handleFilterTipe = (e) => { setFilterTipe(e.target.value); setPage(1); };
+  const handleSortChange = (e) => { setSort(e.target.value); setPage(1); }; // Handler baru untuk sort
 
   const handleNextStatus = async (item) => {
     try {
@@ -160,41 +161,57 @@ export default function OrderList() {
           </svg>
           <h1 className="text-xl font-bold">Halo Admin</h1>
         </div>
-        
+
         <h1 className="text-2xl md:text-3xl font-extrabold text-gray-800">
           DAFTAR PESANAN <span className="font-normal text-gray-500">(ORDER LIST)</span>
         </h1>
       </div>
 
-      {/* TABS & FILTER TIPE */}
+      {/* TABS & FILTER TIPE + SORT */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
         <div className="flex gap-1 bg-white rounded-xl shadow-sm border border-black p-1 w-full md:w-fit overflow-x-auto">
           {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => handleTabChange(tab)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                activeTab === tab
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab
                   ? "bg-[#0077b6] text-white shadow"
                   : "text-gray-500 hover:bg-gray-50"
-              }`}
+                }`}
             >
               {tab}
             </button>
           ))}
         </div>
 
-        <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-black px-4 py-2 flex-shrink-0">
-          <span className="text-sm font-bold text-gray-700">Tipe Pelanggan:</span>
-          <select
-            value={filterTipe}
-            onChange={handleFilterTipe}
-            className="text-sm font-bold text-[#0077b6] bg-transparent focus:outline-none cursor-pointer"
-          >
-            <option value="Semua Tipe">Semua Tipe</option>
-            <option value="Member">Member</option>
-            <option value="Non-Member">Non-Member</option>
-          </select>
+        {/* Filter & Sorting Options */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Filter Tipe */}
+          <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-black px-4 py-2">
+            <span className="text-sm font-bold text-gray-700">Tipe Pelanggan:</span>
+            <select
+              value={filterTipe}
+              onChange={handleFilterTipe}
+              className="text-sm font-bold text-[#0077b6] bg-transparent focus:outline-none cursor-pointer"
+            >
+              <option value="Semua Tipe">Semua Tipe</option>
+              <option value="Member">Member</option>
+              <option value="Non-Member">Non-Member</option>
+            </select>
+          </div>
+
+          {/* Urutkan (Sorting) */}
+          <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-black px-4 py-2">
+            <span className="text-sm font-bold text-gray-700">Urutkan:</span>
+            <select
+              value={sort}
+              onChange={handleSortChange}
+              className="text-sm font-bold text-[#0077b6] bg-transparent focus:outline-none cursor-pointer"
+            >
+              <option value="latest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -202,7 +219,7 @@ export default function OrderList() {
       <div className="bg-white rounded-2xl shadow-sm border border-black overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between px-6 py-4 border-b border-black gap-4">
           <h2 className="font-bold text-gray-700 text-base">Tabel Transaksi</h2>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Cari :</span>
             <div className="relative">
@@ -299,9 +316,8 @@ export default function OrderList() {
             <button
               key={p}
               onClick={() => setPage(p)}
-              className={`w-8 h-8 rounded-lg text-sm font-semibold transition ${
-                page === p ? "bg-[#0077b6] text-white" : "border border-black text-gray-600 hover:bg-gray-50"
-              }`}
+              className={`w-8 h-8 rounded-lg text-sm font-semibold transition ${page === p ? "bg-[#0077b6] text-white" : "border border-black text-gray-600 hover:bg-gray-50"
+                }`}
             >
               {p}
             </button>
@@ -396,7 +412,7 @@ export default function OrderList() {
                       </button>
                     )}
                   </div>
-                  
+
                   {/* Tombol Fase Berikutnya */}
                   <div className="flex gap-2">
                     {detailItem.status !== "Selesai" && detailItem.status !== "Dibatalkan" && (
