@@ -3,10 +3,23 @@ import AdminSidebar from "../../components/AdminSidebar";
 import api from "../../api/axios"; 
 import { Search, Printer, Trash2, Eye, X, ChevronLeft, ChevronRight, ArrowRightCircle } from "lucide-react";
 
-// Sesuai dengan label timeline dan status pada database
 const TIMELINE_LABELS = ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"];
 const TABS = ["SEMUA", "Order Diterima", "Sedang DiPilah", "Sedang DiCuci", "SIAP AMBIL", "SELESAI", "DIBATALKAN"];
 const PER_PAGE = 10;
+
+// Fungsi helper untuk generate 12 bulan terakhir secara dinamis
+const generateMonthOptions = () => {
+  const options = [{ value: "Semua Bulan", label: "Semua Bulan" }];
+  const currentDate = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+    options.push({ value, label });
+  }
+  return options;
+};
+const MONTH_OPTIONS = generateMonthOptions();
 
 function StatusBadge({ status }) {
   const map = {
@@ -66,7 +79,8 @@ export default function OrderList() {
   const [activeTab, setActiveTab] = useState("SEMUA");
   const [search, setSearch] = useState("");
   const [filterTipe, setFilterTipe] = useState("Semua Tipe");
-  const [sort, setSort] = useState("latest"); // State baru untuk sorting
+  const [filterBulan, setFilterBulan] = useState("Semua Bulan"); // State baru untuk filter bulan
+  const [sort, setSort] = useState("latest");
   const [page, setPage] = useState(1);
 
   const [detailItem, setDetailItem] = useState(null);
@@ -81,7 +95,8 @@ export default function OrderList() {
           search,
           status: activeTab,
           customer_type: filterTipe,
-          sort // Kirim parameter sort ke backend
+          month: filterBulan, // Mengirim parameter bulan ke backend
+          sort
         }
       });
       if (response.data.success) {
@@ -103,7 +118,7 @@ export default function OrderList() {
 
   useEffect(() => {
     fetchOrders();
-  }, [activeTab, search, filterTipe, sort]); // Tambahkan sort ke dependency array
+  }, [activeTab, search, filterTipe, filterBulan, sort]); // Menambahkan filterBulan sebagai dependency
 
   const totalPages = Math.max(1, Math.ceil(data.length / PER_PAGE));
   const paginated = data.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -111,7 +126,8 @@ export default function OrderList() {
   const handleTabChange = (tab) => { setActiveTab(tab); setPage(1); };
   const handleSearch = (e) => { setSearch(e.target.value); setPage(1); };
   const handleFilterTipe = (e) => { setFilterTipe(e.target.value); setPage(1); };
-  const handleSortChange = (e) => { setSort(e.target.value); setPage(1); }; // Handler baru untuk sort
+  const handleFilterBulan = (e) => { setFilterBulan(e.target.value); setPage(1); }; // Handler baru untuk filter bulan
+  const handleSortChange = (e) => { setSort(e.target.value); setPage(1); };
 
   const handleNextStatus = async (item) => {
     try {
@@ -140,11 +156,14 @@ export default function OrderList() {
         fetchOrders();
       }
     } catch (error) {
-      console.error("Gagal membatalkan pesanan", error);
+      console.error("Gagal menghapus/membatalkan pesanan", error);
     }
   };
 
   const cancelDelete = () => setDeleteItem(null);
+
+  // Cek apakah item yang dipilih untuk dihapus berstatus Selesai atau Dibatalkan
+  const isSoftDeleteMode = deleteItem && (deleteItem.status === "Selesai" || deleteItem.status === "Dibatalkan");
 
   return (
     <AdminSidebar>
@@ -167,7 +186,7 @@ export default function OrderList() {
         </h1>
       </div>
 
-      {/* TABS & FILTER TIPE + SORT */}
+      {/* TABS & FILTERS */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
         <div className="flex gap-1 bg-white rounded-xl shadow-sm border border-black p-1 w-full md:w-fit overflow-x-auto">
           {TABS.map((tab) => (
@@ -186,6 +205,20 @@ export default function OrderList() {
 
         {/* Filter & Sorting Options */}
         <div className="flex flex-wrap items-center gap-3">
+          {/* Filter Bulan */}
+          <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-black px-4 py-2">
+            <span className="text-sm font-bold text-gray-700">Bulan:</span>
+            <select
+              value={filterBulan}
+              onChange={handleFilterBulan}
+              className="text-sm font-bold text-[#0077b6] bg-transparent focus:outline-none cursor-pointer"
+            >
+              {MONTH_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Filter Tipe */}
           <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-black px-4 py-2">
             <span className="text-sm font-bold text-gray-700">Tipe Pelanggan:</span>
@@ -283,7 +316,7 @@ export default function OrderList() {
                         <button
                           onClick={() => openDelete(item)}
                           className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition flex items-center justify-center"
-                          title="Batalkan Order"
+                          title={item.status === "Selesai" || item.status === "Dibatalkan" ? "Hapus Permanen" : "Batalkan Order"}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -370,7 +403,6 @@ export default function OrderList() {
                   ))}
                 </div>
 
-                {/* Items Table di Detail */}
                 <div className="border border-black">
                   <table className="w-full text-sm border-collapse border border-black">
                     <thead>
@@ -404,14 +436,14 @@ export default function OrderList() {
                     <button className="flex items-center gap-2 bg-[#0077b6] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#005f92] transition">
                       <Printer size={15} /> Cetak
                     </button>
-                    {detailItem.status !== "Dibatalkan" && (
-                      <button
-                        onClick={() => openDelete(detailItem, true)}
-                        className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-500 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-100 transition"
-                      >
-                        <Trash2 size={15} /> Batalkan
-                      </button>
-                    )}
+                    {/* Tombol Hapus/Batal */}
+                    <button
+                      onClick={() => openDelete(detailItem, true)}
+                      className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-500 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-100 transition"
+                    >
+                      <Trash2 size={15} /> 
+                      {detailItem.status === "Selesai" || detailItem.status === "Dibatalkan" ? "Hapus" : "Batalkan"}
+                    </button>
                   </div>
                   
                   {/* Tombol Fase Berikutnya */}
@@ -441,7 +473,6 @@ export default function OrderList() {
                   </div>
                 </div>
 
-                {/* Timeline Component */}
                 <div className="px-2">
                   <Timeline timeline={detailItem.timeline} />
                 </div>
@@ -452,23 +483,36 @@ export default function OrderList() {
         </div>
       )}
 
-      {/* POPUP: KONFIRMASI PEMBATALAN */}
+      {/* POPUP: KONFIRMASI (Batal atau Hapus Dinamis) */}
       {deleteItem && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center border border-gray-200">
             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 size={28} className="text-red-500" />
             </div>
-            <h3 className="text-xl font-extrabold text-gray-800 mb-2">Apakah anda yakin membatalkan ini?</h3>
+            
+            <h3 className="text-xl font-extrabold text-gray-800 mb-2">
+              {isSoftDeleteMode ? "Hapus Data Pesanan?" : "Apakah anda yakin membatalkan ini?"}
+            </h3>
+            
             <p className="text-sm text-gray-400 mb-6">
-              Status transaksi <span className="font-bold text-gray-600">{deleteItem.nota}</span> · {deleteItem.nama} akan diubah menjadi <span className="text-red-500 font-bold">Dibatalkan</span>.
+              {isSoftDeleteMode ? (
+                <span>
+                  Data pesanan <span className="font-bold text-gray-600">{deleteItem.nota}</span> akan dihapus dari daftar aktif.
+                </span>
+              ) : (
+                <span>
+                  Status transaksi <span className="font-bold text-gray-600">{deleteItem.nota}</span> · {deleteItem.nama} akan diubah menjadi <span className="text-red-500 font-bold">Dibatalkan</span>.
+                </span>
+              )}
             </p>
+            
             <div className="flex gap-3 mt-4">
               <button
                 onClick={confirmDelete}
                 className="flex-1 bg-red-50 border-2 border-red-400 text-red-500 py-2.5 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors"
               >
-                Batalkan
+                {isSoftDeleteMode ? "Hapus" : "Batalkan"}
               </button>
               <button
                 onClick={cancelDelete}
