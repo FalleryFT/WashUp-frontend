@@ -18,6 +18,7 @@ import Reports              from './pages/Admin/Reports';
 import PriceSetting         from './pages/Admin/Price';
 import CustomerDashboard    from './Pages/Customer/dashboard';
 import Track                from './Pages/Customer/Track';
+import History              from './Pages/Customer/History';
 
 // ── Guard: hanya bisa diakses kalau sudah login ────────
 const ProtectedRoute = ({ children, role }) => {
@@ -99,6 +100,9 @@ function AppRoutes() {
       } />
       <Route path="/customer/Track" element={
         <ProtectedRoute role="customer"><Track /></ProtectedRoute>
+      } />
+      <Route path="/customer/History" element={
+        <ProtectedRoute role="customer"><History /></ProtectedRoute>
       } />
 
       {/* Fallback */}
