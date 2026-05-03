@@ -1,39 +1,22 @@
 // src/pages/Admin/NewTransaction.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import AdminSidebar from "../../components/AdminSidebar";
+import api from "../../api/axios";
 import {
-  User,
-  Search,
-  ChevronDown,
-  CheckCircle2,
-  Printer,
-  X,
-  AlertCircle,
+  User, Search, ChevronDown, CheckCircle2,
+  Printer, X, AlertCircle, Loader2, AlertTriangle,
 } from "lucide-react";
 
-// ─── DATA DUMMY PELANGGAN ───────────────────────────────────────────────────
-const dummyCustomers = [
-  { id: 1, name: "Budi Santoso", phone: "081234567890", email: "budi@mail.com", address: "Jl. Mawar No. 10, Malang", totalOrders: 12 },
-  { id: 2, name: "Siti Rahayu", phone: "082345678901", email: "siti@mail.com", address: "Jl. Melati No. 5, Malang", totalOrders: 7 },
-  { id: 3, name: "Ahmad Fauzi", phone: "083456789012", email: "ahmad@mail.com", address: "Jl. Anggrek No. 3, Malang", totalOrders: 3 },
-  { id: 4, name: "Dewi Lestari", phone: "084567890123", email: "dewi@mail.com", address: "Jl. Kenanga No. 8, Malang", totalOrders: 20 },
-  { id: 5, name: "Rizky Pratama", phone: "085678901234", email: "rizky@mail.com", address: "Jl. Dahlia No. 2, Malang", totalOrders: 1 },
-];
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+const fmtRupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID") + ",00";
 
-// ─── HARGA ──────────────────────────────────────────────────────────────────
-const HARGA = {
-  "Cuci Kering": 7000,
-  "Cuci Setrika": 9000,
-  "Setrika Saja": 5000,
-};
-const ADDON_HARGA = {
-  selimut: 25000,
-  bedcover: 35000,
-  pelembut: 5000,
-  sabun: 5000,
-};
+// ═══════════════════════════════════════════════════════════════
+// KOMPONEN KECIL
+// ═══════════════════════════════════════════════════════════════
 
-// ─── COUNTER COMPONENT ──────────────────────────────────────────────────────
+/** Tombol +/- untuk addon */
 function Counter({ value, onChange }) {
   return (
     <div className="flex items-center gap-1">
@@ -58,33 +41,133 @@ function Counter({ value, onChange }) {
   );
 }
 
-// ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
+/** Modal sukses setelah transaksi tersimpan */
+function SuccessModal({ data, onReset, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 size={36} className="text-green-500" />
+        </div>
+        <h3 className="text-xl font-extrabold text-gray-800 mb-2">Transaksi Berhasil!</h3>
+
+        {/* Info ringkas */}
+        <p className="text-gray-500 text-sm mb-1">
+          <strong>{data.nama}</strong>
+          {" · "}
+          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
+            {data.tipe}
+          </span>
+        </p>
+        <p className="text-gray-500 text-sm mb-1">{data.layanan} · {data.berat}</p>
+        <p className="text-xs text-gray-400 font-mono mb-2">Nota #{data.nota}</p>
+
+        <p className="text-2xl font-extrabold text-[#0077b6] my-4">{data.totalHarga}</p>
+
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={onReset}
+            className="flex-1 border-2 border-[#0077b6] text-[#0077b6] py-2.5 rounded-xl font-bold text-sm hover:bg-[#eaf6fb] transition"
+          >
+            Transaksi Baru
+          </button>
+          <button
+            onClick={() => { window.print(); onClose(); }}
+            className="flex-1 bg-[#0077b6] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#005f92] transition flex items-center justify-center gap-2"
+          >
+            <Printer size={15} /> Cetak
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN
+// ═══════════════════════════════════════════════════════════════
 export default function NewTransaction() {
-  // Tipe Pelanggan
-  const [isMember, setIsMember] = useState(null); // null | 'member' | 'non-member'
+
+  // ── Master data dari API ───────────────────────────────────────────────────
+  const [kiloanList, setKiloanList] = useState([]);  // [{ id, nama, harga }]
+  const [addonList, setAddonList]   = useState([]);  // [{ id, nama, harga }]
+  const [maxBerat, setMaxBerat]     = useState(7);
+  const [formLoading, setFormLoading] = useState(true);
+
+  // ── State form ─────────────────────────────────────────────────────────────
+  const [isMember, setIsMember]             = useState(null); // null | 'member' | 'non-member'
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [nonMemberName, setNonMemberName] = useState("");
+  const [searchQuery, setSearchQuery]       = useState("");
+  const [searchResults, setSearchResults]   = useState([]);
+  const [searchLoading, setSearchLoading]   = useState(false);
+  const [showDropdown, setShowDropdown]     = useState(false);
+  const [nonMemberName, setNonMemberName]   = useState("");
   const [nonMemberPhone, setNonMemberPhone] = useState("");
   const dropdownRef = useRef(null);
 
-  // Detail Cucian
-  const [berat, setBerat] = useState("");
-  const [layanan, setLayanan] = useState("Cuci Setrika");
-  const [addons, setAddons] = useState({ selimut: 0, bedcover: 0, pelembut: 0, sabun: 0 });
+  // Detail cucian
+  const [berat, setBerat]   = useState("");
+  const [layananId, setLayananId] = useState(null); // id service kiloan
+  // addons: { [service_id]: quantity }
+  const [addons, setAddons] = useState({});
 
-  // Success modal
-  const [showSuccess, setShowSuccess] = useState(false);
+  // Submit
+  const [submitting, setSubmitting]     = useState(false);
+  const [submitError, setSubmitError]   = useState(null);
+  const [successData, setSuccessData]   = useState(null);
 
-  // Filter customers
-  const filteredCustomers = dummyCustomers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.phone.includes(searchQuery)
-  );
+  // ── Fetch form data (kiloan, addon, max_berat) ─────────────────────────────
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await api.get("/admin/transactions/form-data");
+        setKiloanList(data.kiloan ?? []);
+        setAddonList(data.addon ?? []);
+        setMaxBerat(data.max_berat ?? 7);
 
-  // Close dropdown on outside click
+        // Default layanan = kiloan pertama
+        if (data.kiloan?.length > 0) {
+          setLayananId(data.kiloan[0].id);
+        }
+
+        // Init addons state: semua 0
+        const addonInit = {};
+        (data.addon ?? []).forEach((a) => { addonInit[a.id] = 0; });
+        setAddons(addonInit);
+      } catch {
+        // Fallback jika gagal — form tetap bisa diisi manual
+      } finally {
+        setFormLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // ── Search member (debounce 300ms) ─────────────────────────────────────────
+  useEffect(() => {
+    if (isMember !== "member" || searchQuery.length < 1) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const { data } = await api.get("/admin/transactions/search-member", {
+          params: { q: searchQuery },
+        });
+        setSearchResults(data.data ?? []);
+        setShowDropdown(true);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, isMember]);
+
+  // Tutup dropdown saat klik di luar
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -95,18 +178,37 @@ export default function NewTransaction() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Hitung total
-  const hargaLayanan = parseFloat(berat || 0) * (HARGA[layanan] || 0);
-  const hargaAddon = Object.entries(addons).reduce(
-    (sum, [key, qty]) => sum + qty * (ADDON_HARGA[key] || 0),
-    0
-  );
+  // ── Computed values ────────────────────────────────────────────────────────
+  const selectedKiloan = kiloanList.find((k) => k.id === layananId);
+
+  const hargaLayanan = parseFloat(berat || 0) * (selectedKiloan?.harga ?? 0);
+
+  const hargaAddon = addonList.reduce((sum, a) => {
+    return sum + (addons[a.id] ?? 0) * a.harga;
+  }, 0);
+
   const subtotal = hargaLayanan + hargaAddon;
 
+  const customerName = isMember === "member"
+    ? (selectedCustomer?.name ?? "")
+    : nonMemberName;
+
+  const beratNum     = parseFloat(berat || 0);
+  const beratMelebihi = beratNum > maxBerat;
+
+  const isFormValid =
+    customerName.trim() !== "" &&
+    berat !== "" &&
+    beratNum > 0 &&
+    !beratMelebihi &&
+    layananId !== null;
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleMemberSelect = (type) => {
     setIsMember(type);
     setSelectedCustomer(null);
     setSearchQuery("");
+    setSearchResults([]);
     setNonMemberName("");
     setNonMemberPhone("");
   };
@@ -115,205 +217,238 @@ export default function NewTransaction() {
     setSelectedCustomer(customer);
     setSearchQuery(customer.name);
     setShowDropdown(false);
+    setSearchResults([]);
   };
 
-  const handleSubmit = () => {
-    setShowSuccess(true);
-  };
-
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setIsMember(null);
     setSelectedCustomer(null);
     setSearchQuery("");
     setNonMemberName("");
     setNonMemberPhone("");
     setBerat("");
-    setLayanan("Cuci Setrika");
-    setAddons({ selimut: 0, bedcover: 0, pelembut: 0, sabun: 0 });
-    setShowSuccess(false);
+    if (kiloanList.length > 0) setLayananId(kiloanList[0].id);
+    const addonReset = {};
+    addonList.forEach((a) => { addonReset[a.id] = 0; });
+    setAddons(addonReset);
+    setSuccessData(null);
+    setSubmitError(null);
+  }, [kiloanList, addonList]);
+
+  // ── Submit ke API ──────────────────────────────────────────────────────────
+  const handleSubmit = async () => {
+    if (!isFormValid) return;
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // Kumpulkan addon yang qty > 0
+      const addonPayload = addonList
+        .filter((a) => (addons[a.id] ?? 0) > 0)
+        .map((a) => ({ service_id: a.id, quantity: addons[a.id] }));
+
+      const payload = {
+        customer_type:  isMember,
+        user_id:        isMember === "member" ? selectedCustomer?.id : null,
+        customer_name:  customerName,
+        customer_phone: isMember === "non-member" ? nonMemberPhone || null : null,
+        service_id:     layananId,
+        weight:         parseFloat(berat),
+        addons:         addonPayload,
+      };
+
+      const { data } = await api.post("/admin/transactions", payload);
+
+      if (data.success) {
+        setSuccessData(data.data);
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message ?? "Transaksi gagal disimpan. Coba lagi.";
+      setSubmitError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const customerName = isMember === "member"
-    ? (selectedCustomer?.name || "")
-    : nonMemberName;
-
-  const isFormValid =
-    customerName.trim() !== "" &&
-    berat !== "" &&
-    parseFloat(berat) > 0;
-
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <AdminSidebar>
-      {/* Header */}
+
+      {/* Success Modal */}
+      {successData && (
+        <SuccessModal
+          data={successData}
+          onReset={handleReset}
+          onClose={() => setSuccessData(null)}
+        />
+      )}
+
+      {/* ── Header ── */}
       <div className="mb-6">
-        {/* Greeting yang disamakan dengan Dashboard */}
         <div className="flex items-center gap-3 bg-[#0077b6] text-white rounded-xl px-5 py-4 mb-6 shadow">
-              <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
-                <path d="M4 6h16" />
-                <circle cx="12" cy="14" r="5" />
-                <path d="M9.5 14.5c.8-.8 1.7-.8 2.5 0s1.7.8 2.5 0" />
-                <circle cx="16" cy="4" r="0.5" fill="currentColor" />
-                <circle cx="18" cy="4" r="0.5" fill="currentColor" />
-              </svg>
+          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+            <path d="M4 6h16" />
+            <circle cx="12" cy="14" r="5" />
+            <path d="M9.5 14.5c.8-.8 1.7-.8 2.5 0s1.7.8 2.5 0" />
+            <circle cx="16" cy="4" r="0.5" fill="currentColor" />
+            <circle cx="18" cy="4" r="0.5" fill="currentColor" />
+          </svg>
           <h1 className="text-xl font-bold">Halo Admin</h1>
         </div>
-        
         <h1 className="text-2xl md:text-3xl font-extrabold text-gray-800">
-          BUAT TRANSAKSI BARU <span className="font-normal text-gray-500">(New Transaction)</span>
+          BUAT TRANSAKSI BARU{" "}
+          <span className="font-normal text-gray-500">(New Transaction)</span>
         </h1>
       </div>
 
+      {/* Error banner */}
+      {submitError && (
+        <div className="mb-4 flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm">
+          <AlertCircle size={16} className="flex-shrink-0" />
+          <span>{submitError}</span>
+          <button onClick={() => setSubmitError(null)} className="ml-auto">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col xl:flex-row gap-6">
-        {/* ── FORM UTAMA ── */}
+
+        {/* ── FORM ── */}
         <div className="flex-1 space-y-6">
 
           {/* ── SECTION 1: Tipe Pelanggan ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="font-bold text-gray-700 mb-4 text-base">
-              1. Tipe Pelanggan
-            </h2>
+            <h2 className="font-bold text-gray-700 mb-4 text-base">1. Tipe Pelanggan</h2>
 
-            {/* Checkbox Member / Non-Member */}
+            {/* Toggle Member / Non-Member */}
             <div className="flex gap-4 mb-5">
-              {/* Member */}
-              <label
-                className={`flex items-center gap-3 cursor-pointer flex-1 border-2 rounded-xl px-4 py-3 transition-all ${
-                  isMember === "member"
-                    ? "border-[#0077b6] bg-[#eaf6fb]"
-                    : "border-gray-200 hover:border-[#0077b6]/40"
-                }`}
-                onClick={() => handleMemberSelect("member")}
-              >
-                <div
-                  className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
-                    isMember === "member"
-                      ? "border-[#0077b6] bg-[#0077b6]"
-                      : "border-gray-300"
+              {[
+                { value: "member", label: "Member" },
+                { value: "non-member", label: "Non-Member" },
+              ].map(({ value, label }) => (
+                <label
+                  key={value}
+                  onClick={() => handleMemberSelect(value)}
+                  className={`flex items-center gap-3 cursor-pointer flex-1 border-2 rounded-xl px-4 py-3 transition-all ${
+                    isMember === value
+                      ? "border-[#0077b6] bg-[#eaf6fb]"
+                      : "border-gray-200 hover:border-[#0077b6]/40"
                   }`}
                 >
-                  {isMember === "member" && (
-                    <svg width="11" height="8" viewBox="0 0 11 8" fill="none">
-                      <path d="M1 4L4 7L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-700 text-sm">Member</p>
-                  <p className="text-xs text-gray-400">Pelanggan terdaftar</p>
-                </div>
-              </label>
-
-              {/* Non-Member */}
-              <label
-                className={`flex items-center gap-3 cursor-pointer flex-1 border-2 rounded-xl px-4 py-3 transition-all ${
-                  isMember === "non-member"
-                    ? "border-[#0077b6] bg-[#eaf6fb]"
-                    : "border-gray-200 hover:border-[#0077b6]/40"
-                }`}
-                onClick={() => handleMemberSelect("non-member")}
-              >
-                <div
-                  className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-all ${
-                    isMember === "non-member"
-                      ? "border-[#0077b6] bg-[#0077b6]"
-                      : "border-gray-300"
-                  }`}
-                >
-                  {isMember === "non-member" && (
-                    <svg width="11" height="8" viewBox="0 0 11 8" fill="none">
-                      <path d="M1 4L4 7L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-700 text-sm">Non-Member</p>
-                  <p className="text-xs text-gray-400">Pelanggan baru / tamu</p>
-                </div>
-              </label>
+                  <div
+                    className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-all ${
+                      isMember === value
+                        ? "border-[#0077b6] bg-[#0077b6]"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {isMember === value && (
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <p className={`font-semibold text-sm ${isMember === value ? "text-[#0077b6]" : "text-gray-700"}`}>
+                      {label}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {value === "member" ? "Pelanggan terdaftar" : "Pelanggan baru / tanpa akun"}
+                    </p>
+                  </div>
+                </label>
+              ))}
             </div>
 
-            {/* ── Jika Member: Search Pelanggan ── */}
+            {/* Search member */}
             {isMember === "member" && (
-              <div className="space-y-4" ref={dropdownRef}>
+              <div className="relative" ref={dropdownRef}>
+                <label className="text-sm text-gray-500 mb-1 block font-medium">Cari Pelanggan</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <Search size={16} className="text-gray-400" />
-                  </div>
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Cari nama atau nomor HP pelanggan..."
+                    placeholder="Ketik nama atau nomor HP..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
                       setSelectedCustomer(null);
-                      setShowDropdown(true);
                     }}
-                    onFocus={() => setShowDropdown(true)}
-                    className="w-full border border-gray-200 rounded-lg pl-10 pr-4 py-3 bg-[#eaf6fb] text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition"
+                    className="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-3 bg-[#eaf6fb] text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition"
                   />
-                  {showDropdown && filteredCustomers.length > 0 && (
-                    <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                      {filteredCustomers.map((c) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onMouseDown={() => handleSelectCustomer(c)}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eaf6fb] transition text-left"
-                        >
-                          <div className="w-9 h-9 rounded-full bg-[#0077b6]/10 flex items-center justify-center flex-shrink-0">
-                            <User size={16} className="text-[#0077b6]" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm text-gray-800">{c.name}</p>
-                            <p className="text-xs text-gray-400">{c.phone} · {c.totalOrders} transaksi</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+                  {searchLoading && (
+                    <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />
                   )}
                 </div>
 
-                {/* Card data pelanggan terpilih */}
+                {/* Dropdown hasil search */}
+                {showDropdown && searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-30 max-h-56 overflow-y-auto">
+                    {searchResults.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleSelectCustomer(c)}
+                        className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[#eaf6fb] transition text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-[#0077b6]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <User size={15} className="text-[#0077b6]" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-gray-800 text-sm truncate">{c.name}</p>
+                          <p className="text-xs text-gray-500">{c.phone} · {c.totalOrders} order</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tidak ditemukan */}
+                {showDropdown && !searchLoading && searchResults.length === 0 && searchQuery.length >= 1 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-30 px-4 py-4 text-sm text-gray-400 text-center">
+                    Pelanggan tidak ditemukan
+                  </div>
+                )}
+
+                {/* Info pelanggan terpilih */}
                 {selectedCustomer && (
-                  <div className="bg-[#eaf6fb] border border-[#0077b6]/20 rounded-xl p-4 flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-[#0077b6] flex items-center justify-center flex-shrink-0">
-                      <User size={22} className="text-white" />
+                  <div className="mt-3 flex items-start gap-3 bg-[#eaf6fb] rounded-xl p-3 border border-[#0077b6]/20">
+                    <div className="w-9 h-9 rounded-full bg-[#0077b6] flex items-center justify-center flex-shrink-0">
+                      <User size={16} className="text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-800">{selectedCustomer.name}</p>
-                      <p className="text-sm text-gray-500">{selectedCustomer.phone}</p>
-                      <p className="text-sm text-gray-500">{selectedCustomer.address}</p>
-                      <span className="inline-block mt-1 text-xs bg-[#0077b6] text-white px-2 py-0.5 rounded-full">
-                        {selectedCustomer.totalOrders} transaksi
-                      </span>
+                      <p className="font-bold text-gray-800 text-sm">{selectedCustomer.name}</p>
+                      <p className="text-xs text-gray-500">{selectedCustomer.phone}</p>
+                      <p className="text-xs text-gray-400 truncate">{selectedCustomer.address}</p>
                     </div>
                     <button
-                      type="button"
                       onClick={() => { setSelectedCustomer(null); setSearchQuery(""); }}
-                      className="text-gray-400 hover:text-red-400 transition"
+                      className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                     >
-                      <X size={18} />
+                      <X size={16} />
                     </button>
                   </div>
                 )}
               </div>
             )}
 
-            {/* ── Jika Non-Member: Input manual ── */}
+            {/* Non-member input */}
             {isMember === "non-member" && (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-sm">
-                  <AlertCircle size={15} />
-                  <span>Pelanggan non-member, isi data secara manual</span>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block font-medium">Nama Pelanggan <span className="text-red-400">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="Masukkan nama pelanggan"
+                    value={nonMemberName}
+                    onChange={(e) => setNonMemberName(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-[#eaf6fb] text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Nama Pelanggan *"
-                  value={nonMemberName}
-                  onChange={(e) => setNonMemberName(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-[#eaf6fb] text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition"
-                />
                 <input
                   type="tel"
                   placeholder="Nomor HP (opsional)"
@@ -324,71 +459,90 @@ export default function NewTransaction() {
               </div>
             )}
 
-            {/* Hint jika belum pilih */}
             {isMember === null && (
               <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
-                <AlertCircle size={14} />
-                Pilih tipe pelanggan terlebih dahulu
+                <AlertCircle size={14} /> Pilih tipe pelanggan terlebih dahulu
               </p>
             )}
           </div>
 
           {/* ── SECTION 2: Detail Cucian ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="font-bold text-gray-700 mb-4 text-base">
-              2. Detail Cucian
-            </h2>
+            <h2 className="font-bold text-gray-700 mb-4 text-base">2. Detail Cucian</h2>
 
             {/* Kiloan */}
             <p className="font-bold text-gray-800 mb-3">Kiloan</p>
-            <div className="flex flex-col sm:flex-row gap-4 mb-5">
-              <div className="flex-1">
-                <label className="text-sm text-gray-500 mb-1 block">Berat (Kg)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  placeholder="0"
-                  value={berat}
-                  onChange={(e) => setBerat(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-[#eaf6fb] text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-sm text-gray-500 mb-1 block">Layanan</label>
-                <div className="relative">
-                  <select
-                    value={layanan}
-                    onChange={(e) => setLayanan(e.target.value)}
-                    className="w-full appearance-none border border-gray-200 rounded-lg px-4 py-3 bg-[#eaf6fb] text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition pr-10"
-                  >
-                    {Object.keys(HARGA).map((k) => (
-                      <option key={k} value={k}>{k}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+
+            {formLoading ? (
+              <div className="h-14 bg-gray-100 rounded-xl animate-pulse mb-5" />
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-4 mb-5">
+                {/* Berat */}
+                <div className="flex-1">
+                  <label className="text-sm text-gray-500 mb-1 block">Berat (Kg)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="0"
+                    value={berat}
+                    onChange={(e) => setBerat(e.target.value)}
+                    className={`w-full border rounded-lg px-4 py-3 bg-[#eaf6fb] text-gray-700 focus:outline-none focus:ring-2 transition ${
+                      beratMelebihi
+                        ? "border-red-400 focus:ring-red-300"
+                        : "border-gray-200 focus:ring-[#0077b6]/30"
+                    }`}
+                  />
+                  {beratMelebihi && (
+                    <p className="flex items-center gap-1 text-xs text-red-500 mt-1">
+                      <AlertTriangle size={12} /> Melebihi batas maksimal {maxBerat} Kg
+                    </p>
+                  )}
+                </div>
+
+                {/* Layanan */}
+                <div className="flex-1">
+                  <label className="text-sm text-gray-500 mb-1 block">Layanan</label>
+                  <div className="relative">
+                    <select
+                      value={layananId ?? ""}
+                      onChange={(e) => setLayananId(Number(e.target.value))}
+                      className="w-full appearance-none border border-gray-200 rounded-lg px-4 py-3 bg-[#eaf6fb] text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition pr-10"
+                    >
+                      {kiloanList.map((k) => (
+                        <option key={k.id} value={k.id}>
+                          {k.nama} — {fmtRupiah(k.harga)}/Kg
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Add-On */}
             <p className="font-bold text-gray-800 mb-3">Add-On</p>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-              {[
-                { key: "selimut", label: "Selimut" },
-                { key: "bedcover", label: "Bedcover" },
-                { key: "pelembut", label: "Pelembut" },
-                { key: "sabun", label: "Sabun" },
-              ].map(({ key, label }) => (
-                <div key={key}>
-                  <p className="text-sm text-gray-500 mb-2">{label}</p>
-                  <Counter
-                    value={addons[key]}
-                    onChange={(v) => setAddons((prev) => ({ ...prev, [key]: v }))}
-                  />
-                </div>
-              ))}
-            </div>
+            {formLoading ? (
+              <div className="grid grid-cols-2 gap-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                {addonList.map((a) => (
+                  <div key={a.id}>
+                    <p className="text-sm text-gray-500 mb-1">{a.nama}</p>
+                    <p className="text-xs text-gray-400 mb-2">{fmtRupiah(a.harga)}/pcs</p>
+                    <Counter
+                      value={addons[a.id] ?? 0}
+                      onChange={(v) => setAddons((prev) => ({ ...prev, [a.id]: v }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -404,28 +558,28 @@ export default function NewTransaction() {
               <div className="mb-4">
                 <p className="text-white/70 text-xs mb-1">Pelanggan</p>
                 <p className="font-bold text-sm">{customerName}</p>
-                {isMember === "member" && (
-                  <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">Member</span>
-                )}
-                {isMember === "non-member" && (
-                  <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">Non-Member</span>
-                )}
+                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                  {isMember === "member" ? "Member" : "Non-Member"}
+                </span>
               </div>
             )}
 
+            {/* Rincian item */}
             <p className="text-white/70 text-sm font-semibold mb-2">Rincian:</p>
             <div className="space-y-1.5 text-sm mb-4">
-              {berat && parseFloat(berat) > 0 && (
+              {berat && parseFloat(berat) > 0 && selectedKiloan && (
                 <div className="flex justify-between">
-                  <span className="text-white/80">-{berat}Kg x {layanan}</span>
-                  <span>=Rp {hargaLayanan.toLocaleString("id-ID")},00</span>
+                  <span className="text-white/80">
+                    -{berat}Kg × {selectedKiloan.nama}
+                  </span>
+                  <span>={fmtRupiah(hargaLayanan)}</span>
                 </div>
               )}
-              {Object.entries(addons).map(([key, qty]) =>
-                qty > 0 ? (
-                  <div key={key} className="flex justify-between">
-                    <span className="text-white/80 capitalize">-{key.charAt(0).toUpperCase() + key.slice(1)} Add-On</span>
-                    <span>=Rp {(qty * ADDON_HARGA[key]).toLocaleString("id-ID")},00</span>
+              {addonList.map((a) =>
+                (addons[a.id] ?? 0) > 0 ? (
+                  <div key={a.id} className="flex justify-between">
+                    <span className="text-white/80">{a.nama} ×{addons[a.id]}</span>
+                    <span>={fmtRupiah((addons[a.id]) * a.harga)}</span>
                   </div>
                 ) : null
               )}
@@ -434,75 +588,49 @@ export default function NewTransaction() {
               )}
             </div>
 
+            {/* Subtotal */}
             <div className="border-t border-white/20 pt-3 mb-4">
-              <div className="flex justify-between text-sm mb-1">
+              <div className="flex justify-between text-sm">
                 <span className="text-white/70">Subtotal</span>
-                <span>=Rp {subtotal.toLocaleString("id-ID")},00</span>
+                <span>={fmtRupiah(subtotal)}</span>
               </div>
             </div>
 
+            {/* Total */}
             <div className="mb-6">
               <p className="text-white/70 text-sm font-semibold">TOTAL BAYAR :</p>
-              <p className="text-2xl font-extrabold">
-                Rp {subtotal.toLocaleString("id-ID")},00
-              </p>
+              <p className="text-2xl font-extrabold">{fmtRupiah(subtotal)}</p>
             </div>
 
+            {/* Submit */}
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!isFormValid}
+              disabled={!isFormValid || submitting}
               className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                isFormValid
+                isFormValid && !submitting
                   ? "bg-white text-[#0077b6] hover:bg-blue-50 shadow"
                   : "bg-white/30 text-white/50 cursor-not-allowed"
               }`}
             >
-              <Printer size={16} />
-              Simpan &amp; Cetak Struk
+              {submitting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Printer size={16} />
+              )}
+              {submitting ? "Menyimpan..." : "Simpan & Cetak Struk"}
             </button>
-            {!isFormValid && (
+
+            {!isFormValid && !submitting && (
               <p className="text-white/50 text-xs text-center mt-2">
-                Lengkapi data pelanggan &amp; berat cucian
+                {beratMelebihi
+                  ? `Berat melebihi batas ${maxBerat} Kg`
+                  : "Lengkapi data pelanggan & berat cucian"}
               </p>
             )}
           </div>
         </div>
       </div>
-
-      {/* ── SUCCESS MODAL ── */}
-      {showSuccess && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 size={36} className="text-green-500" />
-            </div>
-            <h3 className="text-xl font-extrabold text-gray-800 mb-2">Transaksi Berhasil!</h3>
-            <p className="text-gray-500 text-sm mb-1">
-              <strong>{customerName}</strong>
-            </p>
-            <p className="text-gray-500 text-sm mb-1">{layanan} · {berat} Kg</p>
-            <p className="text-2xl font-extrabold text-[#0077b6] my-4">
-              Rp {subtotal.toLocaleString("id-ID")},00
-            </p>
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={handleReset}
-                className="flex-1 border-2 border-[#0077b6] text-[#0077b6] py-2.5 rounded-xl font-bold text-sm hover:bg-[#eaf6fb] transition"
-              >
-                Transaksi Baru
-              </button>
-              <button
-                onClick={() => setShowSuccess(false)}
-                className="flex-1 bg-[#0077b6] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#005f92] transition flex items-center justify-center gap-2"
-              >
-                <Printer size={15} />
-                Cetak
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </AdminSidebar>
   );
 }
