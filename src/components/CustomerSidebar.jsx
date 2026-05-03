@@ -122,7 +122,7 @@ export default function CustomerSidebar({ children }) {
   const handleLogout = async () => {
     try {
       if (logout) await logout();
-      navigate("/login");
+      navigate("/LandingPage");
     } catch (error) {
       console.error("Logout failed", error);
     }
