@@ -160,11 +160,110 @@ export default function OrderList() {
     }
   };
 
-  const cancelDelete = () => setDeleteItem(null);
+const cancelDelete = () => setDeleteItem(null);
+
+  // Fungsi untuk fitur Cetak Nota
+  const handlePrint = () => {
+    if (!detailItem) return;
+
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    // Looping item untuk tabel cetak
+    const itemsHtml = detailItem.items.map(item => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px dashed #ccc;">${item.item}</td>
+        <td style="padding: 10px; border-bottom: 1px dashed #ccc; text-align: center;">${item.jumlah}</td>
+        <td style="padding: 10px; border-bottom: 1px dashed #ccc; text-align: right;">${item.harga}</td>
+        <td style="padding: 10px; border-bottom: 1px dashed #ccc; text-align: right;">${item.sub}</td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Cetak Nota - ${detailItem.nota}</title>
+          <style>
+            body { font-family: 'Courier New', Courier, monospace; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { margin: 0; font-size: 24px; color: #0077b6; }
+            .header p { margin: 5px 0 0; font-size: 14px; color: #666; }
+            .info-grid { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; }
+            .info-grid table { border-collapse: collapse; }
+            .info-grid td { padding: 3px 10px 3px 0; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+            .table th { border-bottom: 2px dashed #333; padding: 10px; text-align: left; }
+            .table th.center { text-align: center; }
+            .table th.right { text-align: right; }
+            .total-section { border-top: 2px dashed #333; padding-top: 15px; text-align: right; font-size: 16px; }
+            .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; border-top: 1px dashed #ccc; padding-top: 20px; }
+            @media print {
+              body { padding: 0; margin: 20px; }
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>WASHUP LAUNDRY</h1>
+            <p>Bukti Transaksi Pesanan</p>
+          </div>
+          
+          <div class="info-grid">
+            <table>
+              <tr><td><strong>Nota</strong></td><td>: ${detailItem.nota}</td></tr>
+              <tr><td><strong>Nama</strong></td><td>: ${detailItem.nama}</td></tr>
+              <tr><td><strong>Tipe</strong></td><td>: ${detailItem.tipe}</td></tr>
+            </table>
+            <table>
+              <tr><td><strong>Tanggal</strong></td><td>: ${detailItem.tgl}</td></tr>
+              <tr><td><strong>Estimasi</strong></td><td>: ${detailItem.estimasi}</td></tr>
+              <tr><td><strong>Layanan</strong></td><td>: ${detailItem.layanan}</td></tr>
+            </table>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Item / Layanan</th>
+                <th class="center">Jumlah</th>
+                <th class="right">Harga</th>
+                <th class="right">Sub Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div class="total-section">
+            <strong>Total Bayar: <span style="color: #0077b6; font-size: 20px;">${detailItem.totalHarga}</span></strong>
+          </div>
+
+          <div class="footer">
+            <p>Terima kasih telah mempercayakan pakaian Anda di WashUp Laundry.</p>
+            <p>Harap bawa nota ini saat pengambilan.</p>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(() => { window.close(); }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   // Cek apakah item yang dipilih untuk dihapus berstatus Selesai atau Dibatalkan
   const isSoftDeleteMode = deleteItem && (deleteItem.status === "Selesai" || deleteItem.status === "Dibatalkan");
 
+  
   return (
     <AdminSidebar>
       {/* Header */}
@@ -433,7 +532,7 @@ export default function OrderList() {
                 {/* Action Buttons */}
                 <div className="flex items-center justify-between mt-5">
                   <div className="flex gap-2">
-                    <button className="flex items-center gap-2 bg-[#0077b6] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#005f92] transition">
+                    <button onClick={handlePrint} className="flex items-center gap-2 bg-[#0077b6] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#005f92] transition">
                       <Printer size={15} /> Cetak
                     </button>
                     {/* Tombol Hapus/Batal */}

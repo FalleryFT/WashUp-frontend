@@ -216,7 +216,7 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
-            <Link to="/register"
+            <Link to="/login"
               className="inline-block bg-[#5bbfe8] hover:bg-[#3aaad4] text-white font-semibold px-6 py-2.5 rounded-lg transition shadow">
               Pesan Sekarang
             </Link>
