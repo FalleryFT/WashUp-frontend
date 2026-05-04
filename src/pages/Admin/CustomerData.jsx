@@ -17,8 +17,8 @@ export default function CustomerData() {
   const [deleteItem, setDeleteItem] = useState(null); 
   const [addOpen, setAddOpen] = useState(false);  
 
-  // Form state untuk edit & tambah
-  const [form, setForm] = useState({ name: "", phone: "", address: "" });
+  // Form state untuk edit & tambah (Ditambahkan field password)
+  const [form, setForm] = useState({ name: "", phone: "", address: "", password: "" });
 
   // ── Ambil Data dari API (Read) ──
   const fetchCustomers = async () => {
@@ -51,7 +51,7 @@ export default function CustomerData() {
 
   // ── Open Create ──
   const openAdd = () => {
-    setForm({ name: "", phone: "", address: "" });
+    setForm({ name: "", phone: "", address: "", password: "" });
     setAddOpen(true);
   };
 
@@ -70,7 +70,7 @@ export default function CustomerData() {
 
   // ── Open Edit ──
   const openEdit = (item) => {
-    setForm({ name: item.name, phone: item.phone, address: item.address });
+    setForm({ name: item.name, phone: item.phone, address: item.address, password: "" });
     setEditItem(item);
   };
 
@@ -276,6 +276,20 @@ export default function CustomerData() {
                 />
               </div>
 
+              {/* Tampilkan input password HANYA jika sedang mode tambah (addOpen) */}
+              {addOpen && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Password</label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition"
+                    placeholder="Masukkan password"
+                  />
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Alamat</label>
                 <textarea
@@ -291,7 +305,8 @@ export default function CustomerData() {
             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={addOpen ? saveAdd : saveEdit}
-                disabled={!form.name.trim() || !form.phone.trim()}
+                // Validasi agar tombol dinonaktifkan jika password kosong saat menambah data
+                disabled={!form.name.trim() || !form.phone.trim() || (addOpen && !form.password?.trim())}
                 className="flex-1 bg-[#0077b6] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#005f92] transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Simpan
