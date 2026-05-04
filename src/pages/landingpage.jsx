@@ -3,6 +3,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 
+// ── Konstanta label timeline — sama dengan Dashboard.jsx ──────────────────────
+const TIMELINE_LABELS = [
+  'Order di terima',
+  'Sedang Di Pilah',
+  'Sedang Di cuci',
+  'Siap Di ambil',
+];
+
 // ── Logo ──────────────────────────────────────────────────────────────────────
 const Logo = ({ className = "w-9 h-9" }) => (
   <svg viewBox="0 0 200 200" className={className}>
@@ -35,39 +43,58 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// ── Timeline vertikal — FIXED: filter null, handle string & object ────────────
+// ── Timeline — pola persis dari Dashboard.jsx ─────────────────────────────────
+// Mendukung DUA format dari backend:
+//   1. String  : "Label\nTanggal"      (raw dari DB, sebelum diparse)
+//   2. Object  : { status, date }      (sudah diparse di controller)
+// Elemen null = step belum terjadi
 const TimelineView = ({ timeline }) => {
-  if (!timeline?.length) return null;
-
-  // Buang elemen null/undefined sebelum render
-  const entries = timeline.filter(Boolean);
-  if (!entries.length) return null;
-
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wider">Riwayat Status</p>
-      <div className="relative pl-5">
-        <div className="absolute left-[7px] top-1 bottom-1 w-px bg-gray-200" />
-        <div className="space-y-4">
-          {entries.map((t, i) => {
-            // Support dua format: string biasa atau object {status, date}
-            const label = typeof t === 'string' ? t : (t?.status ?? '');
-            const date  = typeof t === 'object'  ? (t?.date ?? '') : '';
-            return (
-              <div key={i} className="flex items-start gap-3 relative">
-                <div className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 mt-0.5 z-10
-                  ${i === 0 ? 'bg-[#5bbfe8] border-[#5bbfe8]' : 'bg-white border-gray-300'}`}
-                />
-                <div className="flex-1">
-                  <p className={`text-sm ${i === 0 ? 'font-semibold text-[#1a3d5c]' : 'text-gray-500'}`}>
-                    {label}
-                  </p>
-                  {date && <p className="text-xs text-gray-400 mt-0.5">{date}</p>}
-                </div>
+      <p className="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wider">
+        Riwayat Status
+      </p>
+      <div className="flex flex-col gap-0">
+        {TIMELINE_LABELS.map((label, i) => {
+          const raw    = timeline?.[i];
+          const done   = raw !== null && raw !== undefined;
+          const isLast = i === TIMELINE_LABELS.length - 1;
+          // Handle string "Label\nTgl" ATAU object {status, date}
+          const date = done
+            ? (typeof raw === 'string' ? (raw.split('\n')[1] ?? '') : (raw?.date ?? ''))
+            : '';
+
+          return (
+            <div key={i} className="flex items-start gap-3">
+              {/* Kolom kiri: dot + garis penghubung */}
+              <div className="flex flex-col items-center">
+                <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 ${
+                  done
+                    ? 'bg-green-500 border-green-500'
+                    : 'bg-white border-gray-300'
+                }`} />
+                {!isLast && (
+                  <div className={`w-0.5 h-8 ${
+                    done && timeline?.[i + 1] ? 'bg-green-500' : 'bg-gray-200'
+                  }`} />
+                )}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Kolom kanan: label + tanggal */}
+              <div className="pb-2">
+                <p className={`text-sm font-bold leading-tight ${
+                  done ? 'text-gray-800' : 'text-gray-300'
+                }`}>
+                  {label}
+                </p>
+                {done
+                  ? <p className="text-xs text-gray-400 mt-0.5">{date}</p>
+                  : <p className="text-xs text-gray-300 mt-0.5">Belum terjadi</p>
+                }
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -109,7 +136,6 @@ const TrackModal = ({ data, onClose, rupiah }) => {
                 ['Tanggal Masuk',    data.order_date],
                 ['Nama Pelanggan',   data.customer_name],
                 ['Total Berat',      data.weight ? `${data.weight} Kg` : '-'],
-                // FIXED: pastikan total_price selalu angka sebelum diformat
                 ['Total Harga',      rupiah(Number(data.total_price) || 0)],
                 ['Estimasi Selesai', data.estimated_date],
               ].map(([label, val]) => (
@@ -161,7 +187,8 @@ const TrackModal = ({ data, onClose, rupiah }) => {
           </div>
 
           {/* ── Kanan: Status + Timeline ── */}
-          <div className="md:w-48 flex-shrink-0">
+          <div className="md:w-52 flex-shrink-0">
+            {/* Info status */}
             <div className="mb-5 p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
               <div>
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
@@ -169,22 +196,12 @@ const TrackModal = ({ data, onClose, rupiah }) => {
                 </span>
                 <StatusBadge status={data.status} />
               </div>
-              {data.service_type && (
-                <div>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
-                    Tipe Layanan
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold border
-                    ${data.service_type === 'kiloan'
-                      ? 'bg-purple-50 text-purple-700 border-purple-200'
-                      : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
-                    {data.service_type === 'kiloan' ? '🧺 Kiloan' : '👕 Satuan'}
-                  </span>
-                </div>
-              )}
             </div>
-            {/* FIXED: TimelineView sekarang handle null & dua format data */}
-            <TimelineView timeline={data.timeline} />
+
+            {/* Timeline — pola Dashboard.jsx */}
+            <div className="px-1">
+              <TimelineView timeline={data.timeline} />
+            </div>
           </div>
         </div>
       </div>
@@ -196,11 +213,9 @@ const TrackModal = ({ data, onClose, rupiah }) => {
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Layanan dari API
   const [services, setServices] = useState({ kiloan: [], satuan: [] });
   const [loadSvc, setLoadSvc]   = useState(true);
 
-  // Cek nota
   const [nota, setNota]               = useState('');
   const [tracking, setTracking]       = useState(false);
   const [trackResult, setTrackResult] = useState(null);
@@ -226,7 +241,6 @@ export default function LandingPage() {
       .finally(() => setLoadSvc(false));
   }, []);
 
-  // FIXED: handleTrack dengan error handling yang lebih robust
   const handleTrack = async (e) => {
     e.preventDefault();
     if (!nota.trim()) return;
@@ -241,14 +255,12 @@ export default function LandingPage() {
         setTrackError('Data tidak ditemukan.');
       }
     } catch (err) {
-      const msg = err.response?.data?.message ?? 'Terjadi kesalahan. Coba lagi.';
-      setTrackError(msg);
+      setTrackError(err.response?.data?.message ?? 'Terjadi kesalahan. Coba lagi.');
     } finally {
       setTracking(false);
     }
   };
 
-  // FIXED: rupiah dengan guard agar tidak crash jika nilai null/undefined
   const rupiah = (num) => {
     const value = Number(num);
     if (isNaN(value)) return 'Rp -';
