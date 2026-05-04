@@ -5,30 +5,29 @@ import CustomerSidebar from "../../components/CustomerSidebar";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
 import {
-  ChevronRight, ClipboardList, PackageCheck,
-  Shirt, WashingMachine, Wallet, ShoppingBag, Hash,
+  ChevronRight, ClipboardList, PackageCheck, Layers,
+  WashingMachine, Wallet, ShoppingBag, Hash,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // KONSTANTA
 // ═══════════════════════════════════════════════════════════════
 
-// 4 step sesuai alur di backend
-// Index: 0=Diterima(Sedang Dicuci), 1=Dicuci(Sedang Di Pilah),
-//        2=Disetrika(Siap Diambil), 3=Selesai
+// 4 step aktif — urutan & label HARUS sama persis dengan Track.jsx & controller
 const STEPS = [
-  { icon: ClipboardList,  label: "Diterima"    },
-  { icon: WashingMachine, label: "Dicuci"      },
-  { icon: Shirt,          label: "Disetrika"   },
-  { icon: PackageCheck,   label: "Siap Diambil"},
+  { icon: ClipboardList, label: "Diterima"    },  // 0 = Order Diterima
+  { icon: Layers,        label: "Di Pilah"    },  // 1 = Sedang Di Pilah
+  { icon: WashingMachine,label: "Dicuci"      },  // 2 = Sedang Dicuci
+  { icon: PackageCheck,  label: "Siap Diambil"},  // 3 = Siap Diambil
 ];
 
 const STATUS_BADGE = {
-  Selesai:        "bg-[#d8f3dc] text-green-800 border-green-200",
-  Dibatalkan:     "bg-[#ffddd2] text-red-800 border-red-200",
-  "Sedang Dicuci":"bg-[#fdf0d5] text-yellow-800 border-yellow-200",
-  "Sedang Di Pilah":"bg-purple-100 text-purple-800 border-purple-200",
-  "Siap Diambil": "bg-cyan-100 text-cyan-800 border-cyan-200",
+  "Selesai":         "bg-[#d8f3dc] text-green-800 border-green-200",
+  "Dibatalkan":      "bg-[#ffddd2] text-red-800 border-red-200",
+  "Order Diterima":  "bg-blue-100 text-blue-800 border-blue-200",
+  "Sedang Di Pilah": "bg-purple-100 text-purple-800 border-purple-200",
+  "Sedang Dicuci":   "bg-[#fdf0d5] text-yellow-800 border-yellow-200",
+  "Siap Diambil":    "bg-cyan-100 text-cyan-800 border-cyan-200",
 };
 
 const fmtRupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
@@ -37,7 +36,6 @@ const fmtRupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
 // KOMPONEN KECIL
 // ═══════════════════════════════════════════════════════════════
 
-/** Kartu statistik */
 function StatusCard({ title, value, isCurrency, icon: Icon, iconBg, iconColor, borderColor, loading }) {
   return (
     <div className={`bg-white border border-gray-100 rounded-2xl flex flex-col shadow-sm relative transition-all hover:shadow-md hover:-translate-y-1 border-b-[5px] ${borderColor}`}>
@@ -56,13 +54,60 @@ function StatusCard({ title, value, isCurrency, icon: Icon, iconBg, iconColor, b
   );
 }
 
-/** Kartu pesanan aktif dengan progress bar */
+// Progress bar menggunakan flex-1 per step agar presisi
+// Logika: center icon-i = (i+0.5)/total*100% → untuk 4 step = 12.5%, 37.5%, 62.5%, 87.5%
+// Track abu: left 12.5% s/d right 12.5%
+// Fill biru: left 12.5%, width = activeStep/3 * 75%
+function ProgressBar({ activeStep }) {
+  const total   = STEPS.length;
+  const fillPct = activeStep === 0 ? 0 : (activeStep / (total - 1)) * 75;
+
+  return (
+    <div className="relative flex items-start mb-8 mt-4">
+      {/* Track abu */}
+      <div
+        className="absolute top-6 h-[3px] bg-gray-100 rounded-full z-0"
+        style={{ left: "12.5%", right: "12.5%" }}
+      />
+      {/* Fill biru */}
+      <div
+        className="absolute top-6 h-[3px] bg-[#0077b6] rounded-full z-0 transition-all duration-700 ease-out"
+        style={{ left: "12.5%", width: `${fillPct}%` }}
+      />
+
+      {STEPS.map(({ icon: Icon, label }, i) => {
+        const done    = i <= activeStep;
+        const current = i === activeStep;
+        return (
+          <div key={i} className="z-10 flex flex-col items-center gap-3 flex-1">
+            <div className={[
+              "w-12 h-12 rounded-full flex items-center justify-center mx-auto transition-all duration-300",
+              done
+                ? "bg-[#0077b6] text-white shadow-lg shadow-blue-100"
+                : "bg-white border-2 border-gray-100 text-gray-300",
+              current ? "scale-110 ring-4 ring-blue-50" : "",
+            ].join(" ")}>
+              <Icon size={20} />
+            </div>
+            <span className={[
+              "text-[11px] sm:text-xs text-center font-bold leading-tight",
+              current ? "text-[#0077b6]" : done ? "text-gray-700" : "text-gray-400",
+            ].join(" ")}>
+              {label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function OrderCard({ order }) {
   return (
     <div className="bg-white rounded-3xl border border-gray-100 p-6 sm:p-8 shadow-sm mb-6 transition-all hover:shadow-md">
 
-      {/* Header: Nota + Estimasi */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="bg-gray-100 p-2 rounded-lg">
             <Hash size={20} className="text-gray-500" />
@@ -72,51 +117,23 @@ function OrderCard({ order }) {
             <p className="text-lg font-mono font-bold text-gray-800 tracking-tight">{order.nota}</p>
           </div>
         </div>
-        <div className="flex items-center bg-blue-50 text-[#0077b6] px-4 py-2 rounded-xl w-fit border border-blue-100">
-          <span className="text-[11px] font-bold tracking-wide uppercase">
-            Estimasi: {order.estimasi}
+        <div className="flex flex-col sm:items-end gap-1.5">
+          {/* Badge status berwarna */}
+          <span className={`text-[11px] font-bold px-3 py-1 rounded-full w-fit border ${
+            STATUS_BADGE[order.status] ?? "bg-gray-100 text-gray-700 border-gray-200"
+          }`}>
+            {order.status}
+          </span>
+          <span className="text-[11px] text-gray-400 font-medium">
+            Estimasi: <span className="text-gray-700 font-bold">{order.estimasi}</span>
           </span>
         </div>
       </div>
 
-      {/* Progress Bar dengan connector line */}
-      <div className="relative flex items-start justify-between px-2 sm:px-6 mb-8 mt-6">
-        {/* Garis abu background */}
-        <div className="absolute top-[24px] left-8 right-8 sm:left-14 sm:right-14 h-[3px] bg-gray-100 -translate-y-1/2 z-0 rounded-full" />
-        {/* Garis biru progress */}
-        <div
-          className="absolute top-[24px] left-8 sm:left-14 h-[3px] bg-[#0077b6] -translate-y-1/2 z-0 transition-all duration-700 ease-out rounded-full"
-          style={{
-            width: order.activeStep === 0
-              ? '0%'
-              : `calc(${(order.activeStep / (STEPS.length - 1)) * 100}% - 56px)`,
-          }}
-        />
+      {/* Progress Bar */}
+      <ProgressBar activeStep={order.activeStep} />
 
-        {STEPS.map((step, i) => {
-          const Icon    = step.icon;
-          const done    = i <= order.activeStep;
-          const current = i === order.activeStep;
-          return (
-            <div key={i} className="z-10 flex flex-col items-center gap-3 w-16 sm:w-20">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
-                done
-                  ? "bg-[#0077b6] text-white shadow-lg shadow-blue-100"
-                  : "bg-white border-2 border-gray-100 text-gray-300"
-              } ${current ? "scale-110 ring-4 ring-blue-50" : ""}`}>
-                <Icon size={20} />
-              </div>
-              <span className={`text-[11px] sm:text-xs text-center font-bold leading-tight ${
-                current ? "text-[#0077b6]" : done ? "text-gray-700" : "text-gray-400"
-              }`}>
-                {step.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Detail order */}
+      {/* Footer detail */}
       <div className="flex flex-wrap justify-between items-center gap-4 pt-6 border-t border-black">
         <div className="flex gap-8">
           <div>
@@ -137,7 +154,6 @@ function OrderCard({ order }) {
   );
 }
 
-/** Skeleton placeholder order card */
 function OrderCardSkeleton() {
   return (
     <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm mb-6 animate-pulse">
@@ -145,7 +161,14 @@ function OrderCardSkeleton() {
         <div className="h-8 w-40 bg-gray-200 rounded-xl" />
         <div className="h-8 w-44 bg-gray-200 rounded-xl" />
       </div>
-      <div className="h-12 bg-gray-100 rounded-full mb-8" />
+      <div className="flex mb-8">
+        {[0,1,2,3].map(i => (
+          <div key={i} className="flex flex-col items-center gap-3 flex-1">
+            <div className="w-12 h-12 rounded-full bg-gray-200" />
+            <div className="h-3 w-14 bg-gray-200 rounded" />
+          </div>
+        ))}
+      </div>
       <div className="flex justify-between pt-6 border-t border-gray-100">
         <div className="flex gap-8">
           <div className="h-10 w-20 bg-gray-200 rounded-lg" />
@@ -157,7 +180,6 @@ function OrderCardSkeleton() {
   );
 }
 
-/** Skeleton baris tabel */
 function TableRowSkeleton() {
   return (
     <tr>
@@ -178,14 +200,12 @@ export default function CustomerDashboard() {
   const navigate   = useNavigate();
   const namaUser   = user?.name || "Pelanggan";
 
-  // ── State ──────────────────────────────────────────────────────────────────
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
   const [stats, setStats]               = useState(null);
   const [activeOrders, setActiveOrders] = useState([]);
   const [history, setHistory]           = useState([]);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -209,7 +229,6 @@ export default function CustomerDashboard() {
 
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
 
-  // ── Stat cards config ──────────────────────────────────────────────────────
   const statCards = [
     {
       title: "PESANAN AKTIF",
@@ -229,14 +248,11 @@ export default function CustomerDashboard() {
     },
   ];
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER
-  // ═══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
       <CustomerSidebar />
 
-      <main className="flex-1 p-6 md:p-8 overflow-auto">
+      <main className="flex-1 overflow-y-auto p-6 md:p-8">
 
         {/* GREETING BANNER */}
         <div className="flex items-center gap-4 bg-gradient-to-r from-[#0077b6] to-[#00b4d8] text-white rounded-3xl px-8 py-7 mb-8 shadow-lg shadow-blue-100 w-full">
@@ -253,7 +269,6 @@ export default function CustomerDashboard() {
           </div>
         </div>
 
-        {/* Error banner */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl flex items-center justify-between text-sm">
             <span>{error}</span>
@@ -267,17 +282,36 @@ export default function CustomerDashboard() {
 
           {/* ── KOLOM KIRI: Pesanan Aktif ── */}
           <div className="xl:col-span-7 flex flex-col">
-            <p className="font-extrabold text-gray-500 text-xs tracking-widest mb-6 ml-1 uppercase">
-              Pesanan Diproses
-            </p>
+            <div className="flex justify-between items-center mb-6 px-1">
+              <p className="font-extrabold text-gray-500 text-xs tracking-widest uppercase">
+                Pesanan Diproses
+              </p>
+              {activeOrders.length > 2 && (
+                <button
+                  onClick={() => navigate("/customer/track")}
+                  className="text-xs font-bold text-[#0077b6] hover:underline flex items-center gap-1"
+                >
+                  Lihat Semua <ChevronRight size={14} />
+                </button>
+              )}
+            </div>
 
             {loading ? (
-              <>
-                <OrderCardSkeleton />
-                <OrderCardSkeleton />
-              </>
+              <><OrderCardSkeleton /><OrderCardSkeleton /></>
             ) : activeOrders.length > 0 ? (
-              activeOrders.map((o) => <OrderCard key={o.id} order={o} />)
+              <>
+                {activeOrders.slice(0, 2).map((o) => (
+                  <OrderCard key={o.id} order={o} />
+                ))}
+                {activeOrders.length > 2 && (
+                  <button
+                    onClick={() => navigate("/customer/track")}
+                    className="w-full py-4 border-2 border-dashed border-gray-200 rounded-3xl text-gray-400 font-bold hover:border-[#0077b6] hover:text-[#0077b6] transition-all text-sm mb-6"
+                  >
+                    + Lihat {activeOrders.length - 2} Pesanan Lainnya
+                  </button>
+                )}
+              </>
             ) : (
               <div className="bg-white rounded-3xl border border-dashed border-gray-200 p-12 text-center flex flex-col items-center justify-center text-gray-400">
                 <WashingMachine size={48} className="mb-4 text-gray-200" />
@@ -290,12 +324,10 @@ export default function CustomerDashboard() {
           {/* ── KOLOM KANAN: Stats + Riwayat ── */}
           <div className="xl:col-span-5 flex flex-col gap-6 xl:mt-[44px]">
 
-            {/* Status Cards */}
             <div className="grid grid-cols-2 gap-4">
               {statCards.map((card) => (
                 <StatusCard key={card.title} {...card} loading={loading} />
               ))}
-              {/* Pengeluaran bulan ini — full width */}
               <div className="col-span-2">
                 <StatusCard
                   title="PENGELUARAN BULAN INI"
@@ -315,7 +347,7 @@ export default function CustomerDashboard() {
               <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-black">
                 <h2 className="font-extrabold text-gray-800 text-base">Riwayat Terakhir</h2>
                 <button
-                  onClick={() => navigate("/customer/history")}
+                  onClick={() => navigate("/customer/track")}
                   className="flex items-center gap-1 text-sm font-bold text-[#0077b6] hover:text-[#005f92] transition-colors"
                 >
                   Lihat Semua <ChevronRight size={16} />
@@ -335,7 +367,7 @@ export default function CustomerDashboard() {
                   </thead>
                   <tbody>
                     {loading ? (
-                      Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} />)
+                      Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} />)
                     ) : history.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="text-center py-8 text-gray-400 text-sm border border-black">
@@ -343,12 +375,10 @@ export default function CustomerDashboard() {
                         </td>
                       </tr>
                     ) : (
-                      history.map((r, i) => (
+                      history.slice(0, 8).map((r, i) => (
                         <tr
                           key={i}
-                          className={`transition hover:bg-blue-100/50 ${
-                            i % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"
-                          }`}
+                          className={`transition hover:bg-blue-100/50 ${i % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}
                         >
                           <td className="px-2 sm:px-3 py-3 text-center text-[11px] sm:text-xs text-gray-800 font-medium border border-black">
                             {r.tanggal}
