@@ -232,7 +232,10 @@ export default function LandingPage() {
 
   const handleTrack = async (e) => {
     e.preventDefault();
-    if (!nota.trim()) return;
+    if (!nota.trim()) {
+      setTrackError('Nomor nota tidak boleh kosong. Silakan isi terlebih dahulu.');
+      return; 
+    }
     setTracking(true);
     setTrackResult(null);
     setTrackError('');
@@ -457,7 +460,7 @@ export default function LandingPage() {
             />
             <button
               type="submit"
-              disabled={tracking || !nota.trim()}
+              disabled={tracking}
               className="bg-[#5bbfe8] hover:bg-[#3aaad4] text-white font-semibold px-6 py-3 rounded-lg transition text-sm shadow whitespace-nowrap flex items-center gap-2">
               {tracking
                 ? <>
