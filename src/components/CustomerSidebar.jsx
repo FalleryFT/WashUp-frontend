@@ -9,11 +9,12 @@ import {
   MessageSquare,
   UserCircle,
   LogOut,
-  Waves,
+  // Waves, // Ikon Waves dihapus
   Menu as MenuIcon,
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import logoImage from "../assets/logo.png";
 
 // ─────────────────────────────────────────────────────
 // Menu Item
@@ -46,23 +47,26 @@ function MenuItem({ href, icon, text, active = false, onClick }) {
 // ─────────────────────────────────────────────────────
 function SidebarBody({ url, user, onLogout, onClose }) {
   const navItems = [
-    { href: "/customer/dashboard",     icon: <LayoutDashboard size={20} />, text: "Dashboard"        },
+    { href: "/customer/dashboard",     icon: <LayoutDashboard size={20} />, text: "Dashboard"         },
     { href: "/customer/track",         icon: <Search size={20} />,          text: "Lacak Pesanan"    },
     { href: "/customer/history",       icon: <History size={20} />,         text: "Riwayat Pesanan"  },
     { href: "/customer/notifications", icon: <Bell size={20} />,            text: "Notifikasi"       },
     { href: "/customer/chat",          icon: <MessageSquare size={20} />,   text: "Chat Admin"       },
-    { href: "/customer/profile",       icon: <UserCircle size={20} />,      text: "Profil Saya"      },
+    { href: "/customer/profile",       icon: <UserCircle size={20} />,      text: "Profil Saya"       },
   ];
 
   return (
     <div className="w-72 bg-[#0077b6] text-white h-full flex flex-col font-sans overflow-hidden">
       
-      {/* Brand */}
+      {/* Brand - Logo Besar dan Full */}
       <div className="p-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="bg-white p-1 rounded-full text-[#0077b6]">
-            <Waves size={24} />
-          </div>
+        <div className="flex items-center gap-0"> {/* Jarak ditingkatkan */}
+          {/* LOGO BARU DI SINI */}
+          <img
+            src={logoImage}
+            alt="WashUp Logo"
+            className="w-14 h-14 object-contain drop-shadow-md ml-5"
+          />
           <span className="text-3xl font-extrabold tracking-tight">WashUp</span>
         </div>
         {onClose && (
@@ -122,7 +126,7 @@ export default function CustomerSidebar({ children }) {
   const handleLogout = async () => {
     try {
       if (logout) await logout();
-      navigate("/LandingPage");
+      navigate("/LandingPage"); // Mengarahkan ke LandingPage setelah logout
     } catch (error) {
       console.error("Logout failed", error);
     }

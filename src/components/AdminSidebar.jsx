@@ -12,11 +12,11 @@ import {
   FileText,
   Settings,
   LogOut,
-  Waves,
   Menu as MenuIcon,
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import logoImage from "../assets/logo.png"; 
 
 function MenuItem({ href, icon, text, active = false, onClick }) {
   const base = "flex items-center gap-4 px-6 py-3 transition-colors duration-200 font-semibold w-full text-left";
@@ -57,10 +57,13 @@ function SidebarBody({ url, user, onLogout, onClose }) {
       
       {/* Header */}
       <div className="p-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="bg-white p-1 rounded-full text-[#0077b6]">
-            <Waves size={24} />
-          </div>
+        <div className="flex items-center gap-0">
+          {/* BAGIAN LOGO YANG BARU */}
+            <img 
+              src={logoImage} 
+              alt="WashUp Logo" 
+              className="w-14 h-14 object-contain drop-shadow-md ml-5"
+            />
           <span className="text-3xl font-extrabold tracking-tight">WashUp</span>
         </div>
         {onClose && (
@@ -81,7 +84,7 @@ function SidebarBody({ url, user, onLogout, onClose }) {
         </div>
       </div>
 
-      {/* Menu Navigasi (Hanya bagian ini yang bisa di-scroll) */}
+      {/* Menu Navigasi */}
       <nav className="flex-1 overflow-y-auto py-4">
         <div className="flex flex-col">
           {navItems.map((item) => (
@@ -96,7 +99,7 @@ function SidebarBody({ url, user, onLogout, onClose }) {
         </div>
       </nav>
 
-      {/* Bagian Logout (Terkunci di paling bawah, tanpa border) */}
+      {/* Bagian Logout */}
       <div className="shrink-0 bg-[#0077b6] pt-2 pb-6 mt-auto">
         <MenuItem icon={<LogOut size={20} />} text="Logout" onClick={onLogout} />
       </div>
