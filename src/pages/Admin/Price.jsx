@@ -40,7 +40,7 @@ function ConfirmModal({ item, typeName, mode = "soft", onConfirm, onCancel, load
 
   const isHard = mode === "hard";
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center border border-gray-200">
         <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${isHard ? "bg-orange-50" : "bg-red-50"}`}>
           {isHard ? <Trash size={28} className="text-orange-500" /> : <Trash2 size={28} className="text-red-500" />}
@@ -83,46 +83,68 @@ function ConfirmModal({ item, typeName, mode = "soft", onConfirm, onCancel, load
 function KiloanRow({ item, onSave, onDeleteRequest, saving }) {
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({ nama: item.nama, harga: item.harga });
+  const [error, setError] = useState("");
 
   const save = async () => {
-    await onSave(item.id, form);
-    setEdit(false);
+    if (!form.nama.trim() || !form.harga || Number(form.harga) <= 0) {
+      setError("Nama layanan tidak boleh kosong dan harga harus lebih dari 0.");
+      return;
+    }
+    setError("");
+    const success = await onSave(item.id, form);
+    if (success) setEdit(false);
   };
+
   const cancel = () => {
     setForm({ nama: item.nama, harga: item.harga });
+    setError("");
     setEdit(false);
   };
 
   if (edit) {
     return (
-      <div className="flex items-center gap-3 py-3 px-4 bg-blue-50 rounded-xl border border-[#0077b6]/30 mb-2">
-        <input
-          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 bg-white"
-          value={form.nama}
-          onChange={(e) => setForm((f) => ({ ...f, nama: e.target.value }))}
-          placeholder="Nama layanan"
-        />
-        <div className="flex items-center gap-1 border border-gray-200 rounded-lg bg-white px-3 py-2">
-          <span className="text-xs font-medium text-gray-400">Rp</span>
+      <div className="mb-2">
+        <div className={`flex items-center gap-3 py-3 px-4 bg-blue-50 rounded-xl border ${error ? 'border-red-300' : 'border-[#0077b6]/30'}`}>
           <input
-            type="number"
-            step="500"
-            className="w-24 text-sm font-semibold focus:outline-none"
-            value={form.harga}
-            onChange={(e) => setForm((f) => ({ ...f, harga: Number(e.target.value) }))}
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 bg-white"
+            value={form.nama}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, nama: e.target.value }));
+              setError("");
+            }}
+            placeholder="Nama layanan"
           />
+          <div className="flex items-center gap-1 border border-gray-200 rounded-lg bg-white px-3 py-2">
+            <span className="text-xs font-medium text-gray-400">Rp</span>
+            <input
+              type="number"
+              step="500"
+              className="w-24 text-sm font-semibold focus:outline-none"
+              value={form.harga}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, harga: Number(e.target.value) }));
+                setError("");
+              }}
+            />
+          </div>
+          <span className="text-sm text-gray-500 font-medium">/Kg</span>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="w-8 h-8 rounded-lg bg-[#0077b6] text-white flex items-center justify-center hover:bg-[#005f92] disabled:opacity-50"
+          >
+            {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={14} />}
+          </button>
+          <button onClick={cancel} className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200">
+            <X size={14} />
+          </button>
         </div>
-        <span className="text-sm text-gray-500 font-medium">/Kg</span>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="w-8 h-8 rounded-lg bg-[#0077b6] text-white flex items-center justify-center hover:bg-[#005f92] disabled:opacity-50"
-        >
-          {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={14} />}
-        </button>
-        <button onClick={cancel} className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200">
-          <X size={14} />
-        </button>
+        {error && (
+          <div className="mt-2 bg-red-50 border border-red-200 text-red-600 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
+            <AlertTriangle size={14} className="flex-shrink-0" />
+            {error}
+          </div>
+        )}
       </div>
     );
   }
@@ -156,61 +178,67 @@ function KiloanRow({ item, onSave, onDeleteRequest, saving }) {
 function TrashModal({ items, onRestore, onForceDelete, onClose, loading }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-            <Trash size={20} className="text-orange-400" /> Recycle Bin
+      {/* Diperbesar menjadi max-w-2xl dan ditambahkan tinggi minimal */}
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 flex flex-col min-h-[400px]">
+        
+        <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+          <h3 className="font-bold text-gray-800 text-xl flex items-center gap-2">
+            <Trash size={22} className="text-orange-400" /> Recycle Bin
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
+            <X size={22} />
+          </button>
         </div>
 
         {items.length === 0 ? (
-          <div className="text-center py-10 text-gray-400">
-            <Trash size={36} className="mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Recycle Bin kosong</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+            <Trash size={56} className="mb-4 opacity-20" />
+            <p className="text-lg font-semibold text-gray-500">Recycle Bin kosong</p>
+            <p className="text-sm mt-1">Belum ada data layanan yang dihapus.</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-80 overflow-y-auto">
+          <div className="space-y-3 overflow-y-auto flex-1 pr-2 max-h-[60vh]">
             {items.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200"
+                className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100/80 transition rounded-xl border border-gray-200"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-700 text-sm truncate">{item.nama}</p>
-                  <p className="text-xs text-gray-400">
-                    {item.type === "kiloan" ? "Kiloan" : "Add-On"} · {fmt(item.harga)}
-                  </p>
+                  <p className="font-bold text-gray-800 text-base truncate">{item.nama}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${item.type === "kiloan" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>
+                      {item.type === "kiloan" ? "Kiloan" : "Add-On"}
+                    </span>
+                    <span className="text-sm text-gray-600 font-semibold">{fmt(item.harga)}</span>
+                  </div>
                   {item.deleted_at_label && (
-                    <p className="text-[10px] text-red-400 mt-0.5">Dihapus: {item.deleted_at_label}</p>
+                    <p className="text-xs font-medium text-red-400 mt-2 flex items-center gap-1">
+                      <AlertTriangle size={12} /> Dihapus: {item.deleted_at_label}
+                    </p>
                   )}
                 </div>
-                <button
-                  onClick={() => onRestore(item)}
-                  disabled={loading}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-green-50 border border-green-300 text-green-600 rounded-lg text-xs font-semibold hover:bg-green-100 transition disabled:opacity-50"
-                  title="Pulihkan"
-                >
-                  <RotateCcw size={12} /> Pulihkan
-                </button>
-                <button
-                  onClick={() => onForceDelete(item)}
-                  disabled={loading}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-red-50 border border-red-300 text-red-500 rounded-lg text-xs font-semibold hover:bg-red-100 transition disabled:opacity-50"
-                  title="Hapus Permanen"
-                >
-                  <Trash size={12} /> Hapus
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => onRestore(item)}
+                    disabled={loading}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-green-50 border border-green-300 text-green-600 rounded-lg text-sm font-semibold hover:bg-green-100 transition disabled:opacity-50"
+                    title="Pulihkan"
+                  >
+                    <RotateCcw size={16} /> Pulihkan
+                  </button>
+                  <button
+                    onClick={() => onForceDelete(item)}
+                    disabled={loading}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-red-50 border border-red-300 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-100 transition disabled:opacity-50"
+                    title="Hapus Permanen"
+                  >
+                    <Trash size={16} /> Hapus
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
-
-        <div className="mt-5 flex justify-end">
-          <button onClick={onClose} className="px-5 py-2 border-2 border-[#0077b6] text-[#0077b6] rounded-xl text-sm font-semibold hover:bg-blue-50 transition">
-            Tutup
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -219,6 +247,16 @@ function TrashModal({ items, onRestore, onForceDelete, onClose, loading }) {
 /** Modal edit addon */
 function EditAddonModal({ item, onSave, onClose, loading }) {
   const [form, setForm] = useState({ nama: item.nama, harga: item.harga });
+  const [error, setError] = useState("");
+
+  const handleSave = () => {
+    if (!form.nama.trim() || !form.harga || Number(form.harga) <= 0) {
+      setError("Nama item satuan tidak boleh kosong dan harga harus lebih dari 0.");
+      return;
+    }
+    setError("");
+    onSave(item.id, form, setError);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -227,13 +265,16 @@ function EditAddonModal({ item, onSave, onClose, loading }) {
           <h3 className="font-bold text-gray-800 text-lg">Edit Add-On</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
-        <div className="space-y-4 mb-6">
+        <div className="space-y-4 mb-4">
           <div>
             <label className="text-sm font-medium text-gray-600 mb-1 block">Nama Item</label>
             <input
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30"
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm font-medium bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 ${error ? 'border-red-300' : 'border-gray-200'}`}
               value={form.nama}
-              onChange={(e) => setForm((f) => ({ ...f, nama: e.target.value }))}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, nama: e.target.value }));
+                setError("");
+              }}
             />
           </div>
           <div>
@@ -241,15 +282,26 @@ function EditAddonModal({ item, onSave, onClose, loading }) {
             <input
               type="number"
               step="500"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30"
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm font-semibold bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 ${error ? 'border-red-300' : 'border-gray-200'}`}
               value={form.harga}
-              onChange={(e) => setForm((f) => ({ ...f, harga: Number(e.target.value) }))}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, harga: Number(e.target.value) }));
+                setError("");
+              }}
             />
           </div>
         </div>
+        
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-600 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
+            <AlertTriangle size={14} className="flex-shrink-0" />
+            {error}
+          </div>
+        )}
+
         <div className="flex gap-3">
           <button
-            onClick={() => onSave(item.id, form)}
+            onClick={handleSave}
             disabled={loading}
             className="flex-1 bg-[#0077b6] text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-[#005f92] transition disabled:opacity-50 flex items-center justify-center gap-1"
           >
@@ -295,8 +347,11 @@ export default function PriceSetting() {
   // ── Tambah form state ──────────────────────────────────────────────────────
   const [addKiloanOpen, setAddKiloanOpen] = useState(false);
   const [newKiloan, setNewKiloan]         = useState({ nama: "", harga: "" });
+  const [addKiloanError, setAddKiloanError] = useState("");
+
   const [addAddonOpen, setAddAddonOpen]   = useState(false);
   const [newAddon, setNewAddon]           = useState({ nama: "", harga: "" });
+  const [addAddonError, setAddAddonError] = useState("");
 
   // ── Fetch semua data ───────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
@@ -340,15 +395,21 @@ export default function PriceSetting() {
       const { data } = await api.put(`/admin/prices/${id}`, form);
       setKiloan((prev) => prev.map((k) => k.id === id ? data.data : k));
       showToast("Layanan kiloan diperbarui");
-    } catch {
+      return true;
+    } catch (err) {
       showToast("Gagal memperbarui layanan", "error");
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
   const addKiloan = async () => {
-    if (!newKiloan.nama || !newKiloan.harga) return;
+    if (!newKiloan.nama.trim() || !newKiloan.harga || Number(newKiloan.harga) <= 0) {
+      setAddKiloanError("Harap isi nama layanan dan pastikan harga lebih dari 0.");
+      return;
+    }
+    setAddKiloanError("");
     setSaving(true);
     try {
       const { data } = await api.post("/admin/prices", { ...newKiloan, harga: Number(newKiloan.harga), type: "kiloan" });
@@ -356,8 +417,8 @@ export default function PriceSetting() {
       setNewKiloan({ nama: "", harga: "" });
       setAddKiloanOpen(false);
       showToast("Layanan kiloan ditambahkan");
-    } catch {
-      showToast("Gagal menambah layanan", "error");
+    } catch (err) {
+      setAddKiloanError(err.response?.data?.message ?? "Terjadi kesalahan saat menyimpan data.");
     } finally {
       setSaving(false);
     }
@@ -381,22 +442,26 @@ export default function PriceSetting() {
   // ADDON handlers
   // ─────────────────────────────────────────────────────────────────────────
 
-  const saveAddon = async (id, form) => {
+  const saveAddon = async (id, form, setError) => {
     setSaving(true);
     try {
       const { data } = await api.put(`/admin/prices/${id}`, form);
       setAddon((prev) => prev.map((a) => a.id === id ? data.data : a));
       setEditAddon(null);
       showToast("Add-on diperbarui");
-    } catch {
-      showToast("Gagal memperbarui add-on", "error");
+    } catch (err) {
+      setError(err.response?.data?.message ?? "Terjadi kesalahan saat memperbarui data.");
     } finally {
       setSaving(false);
     }
   };
 
   const addAddon = async () => {
-    if (!newAddon.nama || !newAddon.harga) return;
+    if (!newAddon.nama.trim() || !newAddon.harga || Number(newAddon.harga) <= 0) {
+      setAddAddonError("Harap isi nama item satuan dan pastikan harga lebih dari 0.");
+      return;
+    }
+    setAddAddonError("");
     setSaving(true);
     try {
       const { data } = await api.post("/admin/prices", { ...newAddon, harga: Number(newAddon.harga), type: "addon" });
@@ -404,8 +469,8 @@ export default function PriceSetting() {
       setNewAddon({ nama: "", harga: "" });
       setAddAddonOpen(false);
       showToast("Add-on ditambahkan");
-    } catch {
-      showToast("Gagal menambah add-on", "error");
+    } catch (err) {
+      setAddAddonError(err.response?.data?.message ?? "Terjadi kesalahan saat menyimpan data.");
     } finally {
       setSaving(false);
     }
@@ -607,35 +672,56 @@ export default function PriceSetting() {
 
                 {/* Form tambah kiloan */}
                 {addKiloanOpen ? (
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                    <input
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30"
-                      placeholder="Nama layanan"
-                      value={newKiloan.nama}
-                      onChange={(e) => setNewKiloan((f) => ({ ...f, nama: e.target.value }))}
-                    />
-                    <div className="flex items-center gap-1 border border-gray-200 rounded-lg bg-[#eaf6fb] px-3 py-2">
-                      <span className="text-xs font-medium text-gray-400">Rp</span>
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className={`flex items-center gap-2 border rounded-xl p-1.5 ${addKiloanError ? 'border-red-300 bg-red-50/30' : 'border-transparent'}`}>
                       <input
-                        type="number"
-                        step="500"
-                        className="w-20 text-sm font-semibold bg-transparent focus:outline-none"
-                        placeholder="0"
-                        value={newKiloan.harga}
-                        onChange={(e) => setNewKiloan((f) => ({ ...f, harga: e.target.value }))}
+                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30"
+                        placeholder="Nama layanan"
+                        value={newKiloan.nama}
+                        onChange={(e) => {
+                          setNewKiloan((f) => ({ ...f, nama: e.target.value }));
+                          setAddKiloanError("");
+                        }}
                       />
+                      <div className="flex items-center gap-1 border border-gray-200 rounded-lg bg-[#eaf6fb] px-3 py-2">
+                        <span className="text-xs font-medium text-gray-400">Rp</span>
+                        <input
+                          type="number"
+                          step="500"
+                          className="w-20 text-sm font-semibold bg-transparent focus:outline-none"
+                          placeholder="0"
+                          value={newKiloan.harga}
+                          onChange={(e) => {
+                            setNewKiloan((f) => ({ ...f, harga: e.target.value }));
+                            setAddKiloanError("");
+                          }}
+                        />
+                      </div>
+                      <button
+                        onClick={addKiloan}
+                        disabled={saving}
+                        className="px-3 py-2 bg-[#0077b6] text-white rounded-lg text-sm font-semibold hover:bg-[#005f92] disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {saving && <Loader2 size={13} className="animate-spin" />}
+                        Simpan
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setAddKiloanOpen(false);
+                          setAddKiloanError("");
+                          setNewKiloan({ nama: "", harga: "" });
+                        }} 
+                        className="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm hover:bg-gray-200"
+                      >
+                        Batal
+                      </button>
                     </div>
-                    <button
-                      onClick={addKiloan}
-                      disabled={saving}
-                      className="px-3 py-2 bg-[#0077b6] text-white rounded-lg text-sm font-semibold hover:bg-[#005f92] disabled:opacity-50 flex items-center gap-1"
-                    >
-                      {saving && <Loader2 size={13} className="animate-spin" />}
-                      Simpan
-                    </button>
-                    <button onClick={() => setAddKiloanOpen(false)} className="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm hover:bg-gray-200">
-                      Batal
-                    </button>
+                    {addKiloanError && (
+                      <div className="mt-2 bg-red-50 border border-red-200 text-red-600 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
+                        <AlertTriangle size={14} className="flex-shrink-0" />
+                        {addKiloanError}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <button
@@ -739,35 +825,56 @@ export default function PriceSetting() {
 
               {/* Form tambah addon */}
               {addAddonOpen ? (
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                  <input
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30"
-                    placeholder="Nama item"
-                    value={newAddon.nama}
-                    onChange={(e) => setNewAddon((f) => ({ ...f, nama: e.target.value }))}
-                  />
-                  <div className="flex items-center gap-1 border border-gray-200 rounded-lg bg-[#eaf6fb] px-3 py-2">
-                    <span className="text-xs font-medium text-gray-400">Rp</span>
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className={`flex items-center gap-2 border rounded-xl p-1.5 ${addAddonError ? 'border-red-300 bg-red-50/30' : 'border-transparent'}`}>
                     <input
-                      type="number"
-                      step="500"
-                      className="w-24 text-sm font-semibold bg-transparent focus:outline-none"
-                      placeholder="0"
-                      value={newAddon.harga}
-                      onChange={(e) => setNewAddon((f) => ({ ...f, harga: e.target.value }))}
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30"
+                      placeholder="Nama item"
+                      value={newAddon.nama}
+                      onChange={(e) => {
+                        setNewAddon((f) => ({ ...f, nama: e.target.value }));
+                        setAddAddonError("");
+                      }}
                     />
+                    <div className="flex items-center gap-1 border border-gray-200 rounded-lg bg-[#eaf6fb] px-3 py-2">
+                      <span className="text-xs font-medium text-gray-400">Rp</span>
+                      <input
+                        type="number"
+                        step="500"
+                        className="w-24 text-sm font-semibold bg-transparent focus:outline-none"
+                        placeholder="0"
+                        value={newAddon.harga}
+                        onChange={(e) => {
+                          setNewAddon((f) => ({ ...f, harga: e.target.value }));
+                          setAddAddonError("");
+                        }}
+                      />
+                    </div>
+                    <button
+                      onClick={addAddon}
+                      disabled={saving}
+                      className="px-3 py-2 bg-[#0077b6] text-white rounded-lg text-sm font-semibold hover:bg-[#005f92] disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {saving && <Loader2 size={13} className="animate-spin" />}
+                      Simpan
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setAddAddonOpen(false);
+                        setAddAddonError("");
+                        setNewAddon({ nama: "", harga: "" });
+                      }} 
+                      className="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm hover:bg-gray-200"
+                    >
+                      Batal
+                    </button>
                   </div>
-                  <button
-                    onClick={addAddon}
-                    disabled={saving}
-                    className="px-3 py-2 bg-[#0077b6] text-white rounded-lg text-sm font-semibold hover:bg-[#005f92] disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {saving && <Loader2 size={13} className="animate-spin" />}
-                    Simpan
-                  </button>
-                  <button onClick={() => setAddAddonOpen(false)} className="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm hover:bg-gray-200">
-                    Batal
-                  </button>
+                  {addAddonError && (
+                    <div className="mt-2 bg-red-50 border border-red-200 text-red-600 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
+                      <AlertTriangle size={14} className="flex-shrink-0" />
+                      {addAddonError}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <button
