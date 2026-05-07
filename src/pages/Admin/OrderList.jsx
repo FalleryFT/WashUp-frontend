@@ -21,6 +21,25 @@ const generateMonthOptions = () => {
 };
 const MONTH_OPTIONS = generateMonthOptions();
 
+// FUNGSI BARU: Untuk menghitung total valid dari semua sub-total item (kiloan + satuan)
+const calculateRealTotal = (items) => {
+  if (!items || !Array.isArray(items)) return "Rp 0";
+  const total = items.reduce((sum, item) => {
+    // Ambil string sub, pisahkan jika ada koma desimal (misal Rp 15.000,00)
+    const subString = String(item.sub || "0").split(',')[0];
+    // Bersihkan karakter selain angka
+    const numericValue = parseInt(subString.replace(/[^0-9]/g, ""), 10);
+    return sum + (isNaN(numericValue) ? 0 : numericValue);
+  }, 0);
+  
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(total);
+};
+
 function StatusBadge({ status }) {
   const map = {
     "Order Diterima": "bg-blue-100 text-blue-700",
@@ -76,10 +95,10 @@ function Timeline({ timeline }) {
 export default function OrderList() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("SEMUA");
+  const [filterStatus, setFilterStatus] = useState("SEMUA"); 
   const [search, setSearch] = useState("");
   const [filterTipe, setFilterTipe] = useState("Semua Tipe");
-  const [filterBulan, setFilterBulan] = useState("Semua Bulan"); // State baru untuk filter bulan
+  const [filterBulan, setFilterBulan] = useState("Semua Bulan"); 
   const [sort, setSort] = useState("latest");
   const [page, setPage] = useState(1);
 
@@ -93,9 +112,9 @@ export default function OrderList() {
       const response = await api.get("/orders", {
         params: {
           search,
-          status: activeTab,
+          status: filterStatus,
           customer_type: filterTipe,
-          month: filterBulan, // Mengirim parameter bulan ke backend
+          month: filterBulan, 
           sort
         }
       });
@@ -118,15 +137,15 @@ export default function OrderList() {
 
   useEffect(() => {
     fetchOrders();
-  }, [activeTab, search, filterTipe, filterBulan, sort]); // Menambahkan filterBulan sebagai dependency
+  }, [filterStatus, search, filterTipe, filterBulan, sort]); 
 
   const totalPages = Math.max(1, Math.ceil(data.length / PER_PAGE));
   const paginated = data.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  const handleTabChange = (tab) => { setActiveTab(tab); setPage(1); };
+  const handleFilterStatus = (e) => { setFilterStatus(e.target.value); setPage(1); };
   const handleSearch = (e) => { setSearch(e.target.value); setPage(1); };
   const handleFilterTipe = (e) => { setFilterTipe(e.target.value); setPage(1); };
-  const handleFilterBulan = (e) => { setFilterBulan(e.target.value); setPage(1); }; // Handler baru untuk filter bulan
+  const handleFilterBulan = (e) => { setFilterBulan(e.target.value); setPage(1); }; 
   const handleSortChange = (e) => { setSort(e.target.value); setPage(1); };
 
   const handleNextStatus = async (item) => {
@@ -160,15 +179,13 @@ export default function OrderList() {
     }
   };
 
-const cancelDelete = () => setDeleteItem(null);
+  const cancelDelete = () => setDeleteItem(null);
 
-  // Fungsi untuk fitur Cetak Nota
   const handlePrint = () => {
     if (!detailItem) return;
 
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     
-    // Looping item untuk tabel cetak
     const itemsHtml = detailItem.items.map(item => `
       <tr>
         <td style="padding: 10px; border-bottom: 1px dashed #ccc;">${item.item}</td>
@@ -177,6 +194,9 @@ const cancelDelete = () => setDeleteItem(null);
         <td style="padding: 10px; border-bottom: 1px dashed #ccc; text-align: right;">${item.sub}</td>
       </tr>
     `).join('');
+
+    // Gunakan fungsi hitung dinamis agar total yang tercetak benar
+    const computedTotal = calculateRealTotal(detailItem.items);
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -237,7 +257,7 @@ const cancelDelete = () => setDeleteItem(null);
           </table>
 
           <div class="total-section">
-            <strong>Total Bayar: <span style="color: #0077b6; font-size: 20px;">${detailItem.totalHarga}</span></strong>
+            <strong>Total Bayar: <span style="color: #0077b6; font-size: 20px;">${computedTotal}</span></strong>
           </div>
 
           <div class="footer">
@@ -260,10 +280,11 @@ const cancelDelete = () => setDeleteItem(null);
     printWindow.document.close();
   };
 
-  // Cek apakah item yang dipilih untuk dihapus berstatus Selesai atau Dibatalkan
   const isSoftDeleteMode = deleteItem && (deleteItem.status === "Selesai" || deleteItem.status === "Dibatalkan");
-
   
+  // Variabel untuk menampilkan total yang dihitung secara dinamis di Popup Detail
+  const computedTotalDetail = detailItem ? calculateRealTotal(detailItem.items) : "Rp 0";
+
   return (
     <AdminSidebar>
       {/* Header */}
@@ -285,64 +306,81 @@ const cancelDelete = () => setDeleteItem(null);
         </h1>
       </div>
 
-      {/* TABS & FILTERS */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
-        <div className="flex gap-1 bg-white rounded-xl shadow-sm border border-black p-1 w-full md:w-fit overflow-x-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab
-                  ? "bg-[#0077b6] text-white shadow"
-                  : "text-gray-500 hover:bg-gray-50"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+      {/* FILTER & PENCARIAN TIPE BARU */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-sm mb-8">
+        <p className="font-bold text-gray-800 uppercase text-sm mb-4">Filter & Pencarian</p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-5">
 
-        {/* Filter & Sorting Options */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Filter Bulan */}
-          <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-black px-4 py-2">
-            <span className="text-sm font-bold text-gray-700">Bulan:</span>
-            <select
-              value={filterBulan}
-              onChange={handleFilterBulan}
-              className="text-sm font-bold text-[#0077b6] bg-transparent focus:outline-none cursor-pointer"
-            >
-              {MONTH_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+          <div className="flex flex-wrap gap-5">
+            {/* Status Pesanan */}
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">Status Pesanan</p>
+              <select
+                value={filterStatus}
+                onChange={handleFilterStatus}
+                className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0077b6] min-w-[160px] cursor-pointer"
+              >
+                {TABS.map((tab) => (
+                  <option key={tab} value={tab}>{tab}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tipe Pelanggan */}
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">Tipe Pelanggan</p>
+              <select
+                value={filterTipe}
+                onChange={handleFilterTipe}
+                className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0077b6] min-w-[160px] cursor-pointer"
+              >
+                <option value="Semua Tipe">Semua Tipe</option>
+                <option value="Member">Member</option>
+                <option value="Non-Member">Non-Member</option>
+              </select>
+            </div>
+
+            {/* Bulan */}
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">Bulan</p>
+              <select
+                value={filterBulan}
+                onChange={handleFilterBulan}
+                className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0077b6] min-w-[160px] cursor-pointer"
+              >
+                {MONTH_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Urutkan */}
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">Urutkan</p>
+              <select
+                value={sort}
+                onChange={handleSortChange}
+                className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0077b6] min-w-[150px] cursor-pointer"
+              >
+                <option value="latest">Terbaru</option>
+                <option value="oldest">Terlama</option>
+              </select>
+            </div>
           </div>
 
-          {/* Filter Tipe */}
-          <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-black px-4 py-2">
-            <span className="text-sm font-bold text-gray-700">Tipe Pelanggan:</span>
-            <select
-              value={filterTipe}
-              onChange={handleFilterTipe}
-              className="text-sm font-bold text-[#0077b6] bg-transparent focus:outline-none cursor-pointer"
-            >
-              <option value="Semua Tipe">Semua Tipe</option>
-              <option value="Member">Member</option>
-              <option value="Non-Member">Non-Member</option>
-            </select>
-          </div>
-
-          {/* Urutkan (Sorting) */}
-          <div className="flex items-center gap-3 bg-white rounded-xl shadow-sm border border-black px-4 py-2">
-            <span className="text-sm font-bold text-gray-700">Urutkan:</span>
-            <select
-              value={sort}
-              onChange={handleSortChange}
-              className="text-sm font-bold text-[#0077b6] bg-transparent focus:outline-none cursor-pointer"
-            >
-              <option value="latest">Terbaru</option>
-              <option value="oldest">Terlama</option>
-            </select>
+          {/* Cari Pesanan */}
+          <div className="w-full md:w-auto">
+            <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">Cari Pesanan</p>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Masukkan Nama / NOTA..."
+                value={search}
+                onChange={handleSearch}
+                className="border border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0077b6] w-full md:w-[250px]"
+              />
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
           </div>
         </div>
       </div>
@@ -350,118 +388,128 @@ const cancelDelete = () => setDeleteItem(null);
       {/* Table Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-black overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between px-6 py-4 border-b border-black gap-4">
-          <h2 className="font-bold text-gray-700 text-base">Tabel Transaksi</h2>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Cari :</span>
-            <div className="relative">
-              <input
-                type="text"
-                value={search}
-                onChange={handleSearch}
-                placeholder="Nama / Nota..."
-                className="border border-black rounded-lg pl-3 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 bg-[#eaf6fb]"
-              />
-              <Search size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
+          <h2 className="font-bold text-gray-800 text-base uppercase">Tabel Transaksi</h2>
         </div>
 
         {/* Table Content */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse border border-black">
+          <table className="w-full text-sm border-collapse border-b border-black">
             <thead>
               <tr className="bg-[#0077b6] text-white">
-                <th className="px-4 py-3 text-center font-semibold border border-black">No</th>
-                <th className="px-4 py-3 text-center font-semibold border border-black">NOTA</th>
-                <th className="px-4 py-3 text-center font-semibold border border-black">Nama</th>
-                <th className="px-4 py-3 text-center font-semibold border border-black">Tipe</th>
-                <th className="px-4 py-3 text-center font-semibold border border-black">Berat</th>
-                <th className="px-4 py-3 text-center font-semibold border border-black">Estimasi Selesai</th>
-                <th className="px-4 py-3 text-center font-semibold border border-black">Status</th>
-                <th className="px-4 py-3 text-center font-semibold border border-black">Aksi</th>
+                <th className="px-4 py-3.5 text-center font-bold border-r border-black w-12">No</th>
+                <th className="px-4 py-3.5 text-center font-bold border-r border-black">NOTA</th>
+                <th className="px-4 py-3.5 text-center font-bold border-r border-black">Nama</th>
+                <th className="px-4 py-3.5 text-center font-bold border-r border-black">Tipe</th>
+                <th className="px-4 py-3.5 text-center font-bold border-r border-black">Berat</th>
+                <th className="px-4 py-3.5 text-center font-bold border-r border-black">Estimasi Selesai</th>
+                <th className="px-4 py-3.5 text-center font-bold border-r border-black">Status</th>
+                <th className="px-4 py-3.5 text-center font-bold">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-gray-400 border border-black">Memuat data...</td>
+                  <td colSpan={8} className="text-center py-10 text-gray-400 font-bold">Memuat data...</td>
                 </tr>
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-gray-400 border border-black">Tidak ada data</td>
+                  <td colSpan={8} className="text-center py-10 text-gray-400 font-bold">Tidak ada data</td>
                 </tr>
               ) : (
-                paginated.map((item, idx) => (
-                  <tr key={item.id} className={`transition hover:bg-blue-100/50 ${idx % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
-                    <td className="px-4 py-3 text-center text-gray-600 border border-black">{(page - 1) * PER_PAGE + idx + 1}</td>
-                    <td className="px-4 py-3 text-center font-mono text-gray-700 border border-black">{item.nota}</td>
-                    <td className="px-4 py-3 text-center text-gray-800 font-medium border border-black">{item.nama}</td>
-                    <td className="px-4 py-3 text-center border border-black"><TipeBadge tipe={item.tipe} /></td>
-                    <td className="px-4 py-3 text-center text-gray-700 border border-black">{item.berat}</td>
-                    <td className="px-4 py-3 text-center text-gray-600 border border-black">{item.estimasi}</td>
-                    <td className="px-4 py-3 text-center border border-black"><StatusBadge status={item.status} /></td>
-                    <td className="px-4 py-3 text-center border border-black">
-                      <div className="flex items-center justify-center gap-2">
-                        {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
+                paginated.map((item, idx) => {
+                  const isLastRow = idx === paginated.length - 1;
+                  return (
+                    <tr key={item.id} className={`transition hover:bg-blue-100/50 ${idx % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
+                      <td className={`px-4 py-3 text-center text-gray-600 font-bold border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                        {(page - 1) * PER_PAGE + idx + 1}
+                      </td>
+                      <td className={`px-4 py-3 text-center font-mono font-bold text-gray-900 border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                        {item.nota}
+                      </td>
+                      <td className={`px-4 py-3 text-center text-gray-800 font-bold border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                        {item.nama}
+                      </td>
+                      <td className={`px-4 py-3 text-center border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                        <TipeBadge tipe={item.tipe} />
+                      </td>
+                      <td className={`px-4 py-3 text-center font-bold text-gray-700 border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                        {item.berat}
+                      </td>
+                      <td className={`px-4 py-3 text-center font-medium text-gray-600 border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                        {item.estimasi}
+                      </td>
+                      <td className={`px-4 py-3 text-center border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                        <StatusBadge status={item.status} />
+                      </td>
+                      <td className={`px-4 py-3 text-center ${!isLastRow ? "border-b border-black" : ""}`}>
+                        <div className="flex items-center justify-center gap-2">
+                          {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
+                            <button
+                              onClick={() => handleNextStatus(item)}
+                              className="w-8 h-8 rounded-lg bg-green-50 border border-green-200 text-green-500 hover:bg-green-100 transition flex items-center justify-center"
+                              title="Lanjutkan Status"
+                            >
+                              <ArrowRightCircle size={14} />
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleNextStatus(item)}
-                            className="w-8 h-8 rounded-lg bg-green-50 border border-green-200 text-green-500 hover:bg-green-100 transition flex items-center justify-center"
-                            title="Lanjutkan Status"
+                            onClick={() => openDelete(item)}
+                            className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition flex items-center justify-center"
+                            title={item.status === "Selesai" || item.status === "Dibatalkan" ? "Hapus Permanen" : "Batalkan Order"}
                           >
-                            <ArrowRightCircle size={14} />
+                            <Trash2 size={14} />
                           </button>
-                        )}
-                        <button
-                          onClick={() => openDelete(item)}
-                          className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition flex items-center justify-center"
-                          title={item.status === "Selesai" || item.status === "Dibatalkan" ? "Hapus Permanen" : "Batalkan Order"}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => setDetailItem(item)}
-                          className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 text-blue-500 hover:bg-blue-100 transition flex items-center justify-center"
-                          title="Detail"
-                        >
-                          <Eye size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <button
+                            onClick={() => setDetailItem(item)}
+                            className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 text-blue-500 hover:bg-blue-100 transition flex items-center justify-center"
+                            title="Detail"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-end gap-1 px-6 py-4 border-t border-black">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-3 py-1.5 rounded-lg text-sm border border-black text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-          >
-            <ChevronLeft size={14} /> Sebelumnya
-          </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-gray-50">
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+            Halaman {page} dari {totalPages}
+          </span>
+          <div className="flex items-center gap-1">
             <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-8 h-8 rounded-lg text-sm font-semibold transition ${
-                page === p ? "bg-[#0077b6] text-white" : "border border-black text-gray-600 hover:bg-gray-50"
-              }`}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold border border-black bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
             >
-              {p}
+              <ChevronLeft size={14} /> Sebelumnya
             </button>
-          ))}
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-3 py-1.5 rounded-lg text-sm border border-black text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-          >
-            Selanjutnya <ChevronRight size={14} />
-          </button>
+            <div className="flex items-center gap-1 mx-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`w-8 h-8 rounded-lg text-xs font-bold transition border border-black ${
+                    page === p ? "bg-[#0077b6] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold border border-black bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              Selanjutnya <ChevronRight size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -491,7 +539,7 @@ const cancelDelete = () => setDeleteItem(null);
                     ["Tanggal Order", detailItem.tgl],
                     ["Nama", detailItem.nama],
                     ["Total Berat", detailItem.berat],
-                    ["Total Harga", detailItem.totalHarga],
+                    ["Total Harga", computedTotalDetail], // Diperbarui menggunakan dinamis
                     ["Estimasi Selesai", detailItem.estimasi],
                   ].map(([label, val]) => (
                     <div key={label} className="flex gap-2">
@@ -523,7 +571,8 @@ const cancelDelete = () => setDeleteItem(null);
                       ))}
                       <tr className="bg-gray-50">
                         <td colSpan={3} className="px-3 py-2 font-bold text-gray-700 border border-black text-right">Total</td>
-                        <td className="px-3 py-2 text-right font-extrabold text-[#0077b6] border border-black">{detailItem.totalHarga}</td>
+                        {/* Diperbarui menggunakan dinamis */}
+                        <td className="px-3 py-2 text-right font-extrabold text-[#0077b6] border border-black">{computedTotalDetail}</td>
                       </tr>
                     </tbody>
                   </table>
