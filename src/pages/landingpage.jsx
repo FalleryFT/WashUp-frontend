@@ -32,11 +32,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// ── Timeline — pola persis dari Dashboard.jsx ─────────────────────────────────
-// Mendukung DUA format dari backend:
-//   1. String  : "Label\nTanggal"      (raw dari DB, sebelum diparse)
-//   2. Object  : { status, date }      (sudah diparse di controller)
-// Elemen null = step belum terjadi
+// ── Timeline ─────────────────────────────────────────────────────────────────
 const TimelineView = ({ timeline }) => {
   return (
     <div>
@@ -48,14 +44,12 @@ const TimelineView = ({ timeline }) => {
           const raw    = timeline?.[i];
           const done   = raw !== null && raw !== undefined;
           const isLast = i === TIMELINE_LABELS.length - 1;
-          // Handle string "Label\nTgl" ATAU object {status, date}
           const date = done
             ? (typeof raw === 'string' ? (raw.split('\n')[1] ?? '') : (raw?.date ?? ''))
             : '';
 
           return (
             <div key={i} className="flex items-start gap-3">
-              {/* Kolom kiri: dot + garis penghubung */}
               <div className="flex flex-col items-center">
                 <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 ${
                   done
@@ -68,8 +62,6 @@ const TimelineView = ({ timeline }) => {
                   }`} />
                 )}
               </div>
-
-              {/* Kolom kanan: label + tanggal */}
               <div className="pb-2">
                 <p className={`text-sm font-bold leading-tight ${
                   done ? 'text-gray-800' : 'text-gray-300'
@@ -117,7 +109,6 @@ const TrackModal = ({ data, onClose, rupiah }) => {
 
           {/* ── Kiri: Info + Tabel Item ── */}
           <div className="flex-1">
-            {/* Info baris */}
             <div className="space-y-2 mb-5 text-sm">
               {[
                 ['Nota',             data.nota],
@@ -136,7 +127,6 @@ const TrackModal = ({ data, onClose, rupiah }) => {
               ))}
             </div>
 
-            {/* Tabel item (jika ada) */}
             {data.items?.length > 0 && (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <table className="w-full text-sm border-collapse">
@@ -177,7 +167,6 @@ const TrackModal = ({ data, onClose, rupiah }) => {
 
           {/* ── Kanan: Status + Timeline ── */}
           <div className="md:w-52 flex-shrink-0">
-            {/* Info status */}
             <div className="mb-5 p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
               <div>
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
@@ -186,8 +175,6 @@ const TrackModal = ({ data, onClose, rupiah }) => {
                 <StatusBadge status={data.status} />
               </div>
             </div>
-
-            {/* Timeline — pola Dashboard.jsx */}
             <div className="px-1">
               <TimelineView timeline={data.timeline} />
             </div>
@@ -270,11 +257,11 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <button onClick={() => scrollTo('hero')} className="flex items-center gap-0">
-              <img
-                src={logoImage}
-                alt="WashUp Logo"
-                className="w-12 h-12 object-contain drop-shadow-md"
-              />
+            <img
+              src={logoImage}
+              alt="WashUp Logo"
+              className="w-12 h-12 object-contain drop-shadow-md"
+            />
             <span className="text-xl font-bold text-[#1a3d5c]">WashUp</span>
           </button>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
@@ -329,14 +316,12 @@ export default function LandingPage() {
           </div>
           
           <div className="flex-1 flex justify-center">
-            {/* GAMBAR HOME MENGGANTIKAN KOTAK BIRU */}
             <img 
               src={Home} 
               alt="WashUp Laundry Service" 
               className="w-full max-w-md h-64 md:h-72 rounded-2xl shadow-xl object-cover hover:scale-[1.02] transition-transform duration-300"
             />
           </div>
-
         </div>
       </section>
 
@@ -370,64 +355,76 @@ export default function LandingPage() {
       {/* SERVICE */}
       <section id="service" className="py-16 px-6 bg-[#eaf6fb]">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-[#1a3d5c] mb-2">Layanan Kami</h2>
+          <h2 className="text-3xl font-bold text-center text-[#1a3d5c] mb-2">Service</h2>
           <p className="text-center text-gray-500 text-sm mb-10">Harga transparan, kualitas terjamin</p>
 
           {loadSvc ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-52 animate-pulse" />)}
+              {[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-32 animate-pulse" />)}
             </div>
           ) : (
             <>
+              {/* KILOAN */}
               {services.kiloan.length > 0 && (
                 <div className="mb-10">
-                  <div className="flex items-center gap-3 mb-5">
-                    <span className="text-lg font-bold text-[#1a3d5c]">🧺 Kiloan</span>
-                    <span className="text-xs text-gray-400 border border-gray-200 rounded-full px-2 py-0.5">harga / Kg</span>
+                  <div className="flex items-center justify-between mb-5">
+                    <span className="text-sm font-bold text-gray-700 tracking-widest uppercase">Kiloan</span>
+                    <span className="text-xs text-gray-400 border border-gray-200 rounded-full px-3 py-1 bg-white">
+                      Harga / Kg
+                    </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {services.kiloan.map((s, i) => {
-                      const grads = ['from-[#b8dff5] to-[#5bbfe8]','from-[#5bbfe8] to-[#3aaad4]','from-[#3aaad4] to-[#1752a0]'];
-                      return (
-                        <div key={s.id} className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition duration-200">
-                          <div className={`h-36 bg-gradient-to-br ${grads[i % grads.length]} flex items-center justify-center`}>
-                            <svg className="w-16 h-16 text-white opacity-60" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M18 2.01L6 2c-1.1 0-2 .89-2 2v16c0 1.11.9 2 2 2h12c1.1 0 2-.89 2-2V4c0-1.11-.9-1.99-2-1.99zM18 20H6V8h12v12zm0-14H6V4h12v2zM9 5H7V4h2v1zm-3 0V4h1v1H6zm6 4c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
-                            </svg>
-                          </div>
-                          <div className="p-4">
-                            <p className="font-semibold text-[#1a3d5c]">{s.name}</p>
-                            <p className="text-[#1a3d5c] font-bold text-lg">
-                              {rupiah(s.price)} <span className="text-xs font-normal text-gray-400">/Kg</span>
-                            </p>
-                          </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {services.kiloan.map((s) => (
+                      <div
+                        key={s.id}
+                        className="relative bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-t-8 border-t-[#3b82f6] hover:shadow-md hover:-translate-y-0.5 transition duration-200"
+                      >
+                        {/* Icon pojok kanan atas — Kiloan: timbangan */}
+                        <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#eaf6fb] flex items-center justify-center border border-[#c8e9f5]">
+                          <svg className="w-5 h-5 text-[#0077b6]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round"
+                              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                          </svg>
                         </div>
-                      );
-                    })}
+
+                        <p className="font-bold text-gray-800 text-base mb-2 pr-14">{s.name}</p>
+                        <p className="text-[#0077b6] font-extrabold text-2xl leading-tight">
+                          {rupiah(s.price)}
+                          <span className="text-sm font-normal text-gray-400 ml-1">/ Kg</span>
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
+              {/* SATUAN */}
               {services.satuan.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-3 mb-5">
-                    <span className="text-lg font-bold text-[#1a3d5c]">👕 Satuan</span>
-                    <span className="text-xs text-gray-400 border border-gray-200 rounded-full px-2 py-0.5">harga / item</span>
+                  <div className="flex items-center justify-between mb-5">
+                    <span className="text-sm font-bold text-gray-700 tracking-widest uppercase">Satuan</span>
+                    <span className="text-xs text-gray-400 border border-gray-200 rounded-full px-3 py-1 bg-white">
+                      Harga / Item
+                    </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     {services.satuan.map((s) => (
-                      <div key={s.id} className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition duration-200">
-                        <div className="h-36 bg-gradient-to-br from-[#e0f4fb] to-[#b8dff5] flex items-center justify-center">
-                          <svg className="w-14 h-14 text-[#3aaad4] opacity-70" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0H3" />
+                      <div
+                        key={s.id}
+                        className="relative bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-t-8 border-t-[#1a3d5c] hover:shadow-md hover:-translate-y-0.5 transition duration-200"
+                      >
+                        {/* Icon pojok kanan atas — Satuan: Generic Items (tumpukan lipatan) */}
+                        <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#eaf6fb] flex items-center justify-center border border-[#c8e9f5]">
+                          <svg className="w-5 h-5 text-[#0077b6]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                           </svg>
                         </div>
-                        <div className="p-4">
-                          <p className="font-semibold text-[#1a3d5c]">{s.name}</p>
-                          <p className="text-[#1a3d5c] font-bold text-lg">
-                            {rupiah(s.price)} <span className="text-xs font-normal text-gray-400">/item</span>
-                          </p>
-                        </div>
+
+                        <p className="font-bold text-gray-800 text-base mb-2 pr-14">{s.name}</p>
+                        <p className="text-[#0077b6] font-extrabold text-2xl leading-tight">
+                          {rupiah(s.price)}
+                          <span className="text-sm font-normal text-gray-400 ml-1">/ item</span>
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -498,7 +495,6 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-10 items-center">
           
           <div className="flex-1">
-            {/* GAMBAR ABOUT MENGGANTIKAN KOTAK BIRU */}
             <img 
               src={About} 
               alt="Tentang WashUp Professional" 
@@ -534,73 +530,70 @@ export default function LandingPage() {
         </div>
       </section>
 
-{/* CONTACT */}
-<section id="contact" className="py-16 px-6 bg-white">
-  <div className="max-w-5xl mx-auto">
-    <h2 className="text-3xl font-bold text-center text-[#1a3d5c] mb-12">
-      Contact Us
-    </h2>
+      {/* CONTACT */}
+      <section id="contact" className="py-16 px-6 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-[#1a3d5c] mb-12">
+            Contact Us
+          </h2>
 
-    <div className="flex flex-col md:flex-row gap-10 md:gap-14 items-center justify-between bg-gray-50/50 p-6 md:p-10 rounded-3xl border border-gray-100 shadow-sm">
-      
-      {/* BAGIAN MAPS - Diperkecil */}
-      <div className="w-full md:w-5/12 h-60 md:h-72 rounded-2xl shadow-md relative overflow-hidden flex-shrink-0 border border-gray-200 bg-white">
-        <iframe
-          title="Lokasi WashUp Laundry"
-          src="https://maps.google.com/maps?q=FR43%2B5X9,%20Jl.%20Kutai%20Utara,%20Sumber,%20Kec.%20Banjarsari,%20Kota%20Surakarta,%20Jawa%20Tengah%2057138&t=&z=16&ie=UTF8&iwloc=&output=embed"
-          className="absolute top-0 left-0 w-full h-full border-0"
-          allowFullScreen=""
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        ></iframe>
-      </div>
-
-      {/* DETAIL KONTAK - Dibuat Lebih Modern */}
-      <div className="w-full md:w-7/12 flex flex-col gap-6">
-        {[
-          { 
-            label: 'Alamat', 
-            emoji: '📍', 
-            text: 'Jl. Kutai Utara, Sumber, Kec. Banjarsari, Kota Surakarta, Jawa Tengah 57138' 
-          },
-          { 
-            label: 'Email', 
-            emoji: '✉️', 
-            text: 'washuplaundry@gmail.com' 
-          },
-          { 
-            label: 'Telepon / WhatsApp', 
-            emoji: '📱', 
-            text: '+62801749020' 
-          },
-          { 
-            label: 'Jam Operasional', 
-            emoji: '🕐', 
-            text: '08.00 - 20.00 WIB' 
-          },
-        ].map((c, i) => (
-          <div key={i} className="flex items-start gap-4">
-            {/* Ikon dengan background */}
-            <div className="w-12 h-12 flex items-center justify-center bg-[#1a3d5c]/10 rounded-full flex-shrink-0 shadow-sm">
-              <span className="text-xl">{c.emoji}</span>
-            </div>
+          <div className="flex flex-col md:flex-row gap-10 md:gap-14 items-center justify-between bg-gray-50/50 p-6 md:p-10 rounded-3xl border border-gray-100 shadow-sm">
             
-            {/* Teks dengan Label */}
-            <div className="flex flex-col mt-0.5">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-                {c.label}
-              </span>
-              <span className="font-medium text-[#1a3d5c] text-sm md:text-base leading-relaxed">
-                {c.text}
-              </span>
+            {/* MAPS */}
+            <div className="w-full md:w-5/12 h-60 md:h-72 rounded-2xl shadow-md relative overflow-hidden flex-shrink-0 border border-gray-200 bg-white">
+              <iframe
+                title="Lokasi WashUp Laundry"
+                src="https://maps.google.com/maps?q=FR43%2B5X9,%20Jl.%20Kutai%20Utara,%20Sumber,%20Kec.%20Banjarsari,%20Kota%20Surakarta,%20Jawa%20Tengah%2057138&t=&z=16&ie=UTF8&iwloc=&output=embed"
+                className="absolute top-0 left-0 w-full h-full border-0"
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
             </div>
-          </div>
-        ))}
-      </div>
 
-    </div>
-  </div>
-</section>
+            {/* DETAIL KONTAK */}
+            <div className="w-full md:w-7/12 flex flex-col gap-6">
+              {[
+                { 
+                  label: 'Alamat', 
+                  emoji: '📍', 
+                  text: 'Jl. Kutai Utara, Sumber, Kec. Banjarsari, Kota Surakarta, Jawa Tengah 57138' 
+                },
+                { 
+                  label: 'Email', 
+                  emoji: '✉️', 
+                  text: 'washuplaundry@gmail.com' 
+                },
+                { 
+                  label: 'Telepon / WhatsApp', 
+                  emoji: '📱', 
+                  text: '+62801749020' 
+                },
+                { 
+                  label: 'Jam Operasional', 
+                  emoji: '🕐', 
+                  text: '08.00 - 20.00 WIB' 
+                },
+              ].map((c, i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <div className="w-12 h-12 flex items-center justify-center bg-[#1a3d5c]/10 rounded-full flex-shrink-0 shadow-sm">
+                    <span className="text-xl">{c.emoji}</span>
+                  </div>
+                  <div className="flex flex-col mt-0.5">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                      {c.label}
+                    </span>
+                    <span className="font-medium text-[#1a3d5c] text-sm md:text-base leading-relaxed">
+                      {c.text}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      </section>
       
       {/* FOOTER */}
       <footer className="bg-[#1a3d5c] text-white py-10 px-6">

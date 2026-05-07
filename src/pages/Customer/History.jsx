@@ -6,11 +6,12 @@ import { Eye, X, Printer, ChevronLeft, ChevronRight, WashingMachine, Search, Ref
 import api from "../../api/axios";
 
 // ─── KONSTANTA ────────────────────────────────────────────────────────────────
+const TIMELINE_LABELS = ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"];
 const STATUS_BADGE = {
   "Order Diterima": "bg-blue-100 text-blue-800 border-blue-200",
-  "Sedang Dipilah": "bg-orange-100 text-orange-800 border-orange-200",
+  "Sedang Dipilah": "bg-purple-100 text-purple-800 border-purple-200",
   "Sedang Dicuci":  "bg-yellow-100 text-yellow-800 border-yellow-200",
-  "Siap Diambil":   "bg-purple-100 text-purple-800 border-purple-200",
+  "Siap Diambil":   "bg-cyan-100 text-cyan-800 border-cyan-200",
   "Selesai":        "bg-green-100 text-green-800 border-green-200",
   "Dibatalkan":     "bg-red-100 text-red-800 border-red-200",
 };
@@ -20,44 +21,53 @@ const MONTHS = [
   "Juli","Agustus","September","Oktober","November","Desember",
 ];
 
-// Sesuai TIMELINE_STEPS di komponen Timeline — 4 step
-const TIMELINE_STEPS = [
-  { label: "Order Diterima" },
-  { label: "Sedang Dipilah" },
-  { label: "Sedang Dicuci"  },
-  { label: "Siap Diambil"   },
-];
-
 const PER_PAGE = 5;
 
+// Disesuaikan dengan controller yang mengirimkan 4 slot
+const TIMELINE_STEPS = [
+  "Order Diterima",
+  "Sedang Dipilah",
+  "Sedang Dicuci",
+  "Siap Diambil",
+];
+
 // ─── TIMELINE (Vertical / Popup) ─────────────────────────────────────────────
-function Timeline({ detail }) {
+// Menyesuaikan logika pembacaan array of object dari backend:
+// $defaultTimeline = [ ['label' => 'Order Diterima', 'tanggal' => '-'], ... ]
+function Timeline({ timeline, activeStep }) {
+  // Pastikan kita memiliki array timeline yang valid.
+  // Jika tidak, kita gunakan default mapping.
+  const safeTimeline = Array.isArray(timeline) && timeline.length === 4 
+      ? timeline 
+      : TIMELINE_STEPS.map(label => ({ label, tanggal: '-' }));
+
   return (
     <div className="flex flex-col gap-0">
-      {TIMELINE_STEPS.map((step, i) => {
-        const done   = i <= detail.activeStep;
-        const isLast = i === TIMELINE_STEPS.length - 1;
-        // Tanggal dari array timeline yang dikirim API
-        const tgl    = detail.timeline?.[i]?.tanggal ?? '-';
+      {safeTimeline.map((step, i) => {
+        // Logika `done`: Apakah step saat ini (index `i`) kurang dari atau sama dengan `activeStep`
+        const done = i <= activeStep;
+        const isLast = i === safeTimeline.length - 1;
+        
+        // Ambil nilai tanggal dari object (default dari Controller adalah '-')
+        const tgl = step.tanggal;
+        // Kita anggap "belum terjadi" jika tgl adalah '-' atau kosong
+        const hasDate = tgl !== '-' && tgl !== null && tgl !== undefined && tgl !== '';
+
         return (
           <div key={i} className="flex items-start gap-3">
             <div className="flex flex-col items-center">
-              <div className={`w-4 h-4 rounded-full border flex-shrink-0 mt-0.5 ${
-                done ? "bg-[#0077b6] border-black" : "bg-white border-black"
-              }`} />
-              {!isLast && (
-                <div className={`w-0.5 h-8 ${
-                  done && i < detail.activeStep ? "bg-[#0077b6]" : "bg-black"
-                }`} />
-              )}
+              <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 ${done ? "bg-green-500 border-green-500" : "bg-white border-gray-300"}`} />
+              {!isLast && <div className={`w-0.5 h-8 ${done && i < activeStep ? "bg-green-500" : "bg-gray-200"}`} />}
             </div>
-            <div className="pb-1">
-              <p className={`text-sm font-bold leading-tight ${done ? "text-gray-900" : "text-gray-400"}`}>
+            <div className="pb-2">
+              <p className={`text-sm font-bold leading-tight ${done ? "text-gray-800" : "text-gray-300"}`}>
                 {step.label}
               </p>
-              <p className={`text-[10px] ${done ? "text-gray-500 font-medium" : "text-gray-400"}`}>
-                {tgl}
-              </p>
+              {done && hasDate ? (
+                <p className="text-xs text-gray-400 whitespace-pre-line">{tgl}</p>
+              ) : (
+                <p className="text-xs text-gray-300">Belum Terjadi</p>
+              )}
             </div>
           </div>
         );
@@ -67,8 +77,6 @@ function Timeline({ detail }) {
 }
 
 // ─── CETAK NOTA ───────────────────────────────────────────────────────────────
-// Sesuai handlePrint — pakai field: nota, nama, tipe, tgl, estimasi, layanan,
-//                                   totalHarga, items[]
 function handlePrint(detailItem) {
   if (!detailItem) return;
 
@@ -114,10 +122,10 @@ function handlePrint(detailItem) {
           <table>
             <tr><td><strong>Nota</strong></td><td>: ${detailItem.nota}</td></tr>
             <tr><td><strong>Nama</strong></td><td>: ${detailItem.nama}</td></tr>
-            <tr><td><strong>Tipe</strong></td><td>: ${detailItem.tipe}</td></tr>
+            <tr><td><strong>Tipe</strong></td><td>: ${detailItem.tipe || 'Reguler'}</td></tr>
           </table>
           <table>
-            <tr><td><strong>Tanggal</strong></td><td>: ${detailItem.tgl}</td></tr>
+            <tr><td><strong>Tanggal</strong></td><td>: ${detailItem.tanggalOrder || detailItem.tgl}</td></tr>
             <tr><td><strong>Estimasi</strong></td><td>: ${detailItem.estimasi}</td></tr>
             <tr><td><strong>Layanan</strong></td><td>: ${detailItem.layanan}</td></tr>
           </table>
@@ -153,95 +161,113 @@ function handlePrint(detailItem) {
 }
 
 // ─── DETAIL POPUP ─────────────────────────────────────────────────────────────
-function DetailPopup({ detail, statusLabel, onClose }) {
-  const total = detail.items.reduce((s, r) => {
-    const num = parseInt(r.sub.replace(/\D/g, ""), 10);
-    return s + (isNaN(num) ? 0 : num);
-  }, 0);
+function DetailPopup({ detail, onClose }) {
+  
+  // Karena totalHarga sudah diformat dengan baik oleh Controller ('Rp 15.000'),
+  // kita bisa langsung menggunakannya. Namun, jika ingin memastikan penjumlahan
+  // akurat dari sub item, berikut cara dinamisnya:
+  const calculatedTotal = detail.items?.reduce((sum, item) => {
+    if (!item.sub) return sum;
+    // Mengubah string seperti "Rp 15.000" menjadi angka 15000
+    const num = parseInt(String(item.sub).replace(/\D/g, ""), 10);
+    return sum + (isNaN(num) ? 0 : num);
+  }, 0) || 0;
+
+  // Prioritaskan hasil perhitungan frontend jika ada items, jika tidak gunakan totalHarga dari DB
+  const displayTotal = detail.items?.length > 0 
+    ? `Rp ${calculatedTotal.toLocaleString("id-ID")}`
+    : detail.totalHarga;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-black">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-black bg-white sticky top-0 z-10">
-          <h2 className="text-xl font-black text-gray-800 uppercase tracking-wide">Detail Transaksi</h2>
-          <div className="flex items-center gap-4">
-            <span className={`px-4 py-1.5 rounded-full text-[11px] font-bold border ${STATUS_BADGE[statusLabel] ?? "bg-gray-100 text-gray-500 border-black"}`}>
-              {statusLabel}
-            </span>
-            <button onClick={onClose} className="text-gray-400 hover:text-red-600 transition-colors">
-              <X size={24} strokeWidth={2.5} />
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        
+        {/* Popup Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-black">
+          <h2 className="text-xl font-extrabold text-gray-800">Detail Transaksi</h2>
+          <div className="flex items-center gap-3">
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-2">
+              <X size={20} />
             </button>
           </div>
         </div>
 
         {/* Body */}
-        <div className="flex flex-col md:flex-row gap-8 p-8">
-
-          {/* Kiri: info + tabel */}
-          <div className="flex-1 flex flex-col">
-            <div className="space-y-2 text-sm mb-6 bg-gray-50 p-5 rounded-2xl border border-black">
+        <div className="flex flex-col md:flex-row gap-6 p-6">
+          
+          {/* LEFT: Info + Table */}
+          <div className="flex-1">
+            <div className="space-y-2 mb-5 text-sm">
               {[
-                ["Nota",             detail.nota],
-                ["Layanan",          detail.layanan],
-                ["Tanggal Order",    detail.tanggalOrder],
-                ["Nama",             detail.nama],
-                ["Total Berat",      detail.totalBerat],
+                ["Nota", detail.nota],
+                ["Layanan", detail.layanan],
+                ["Tanggal Order", detail.tanggalOrder || detail.tgl],
+                ["Nama", detail.nama],
+                ["Total Berat", detail.totalBerat || detail.berat],
+                ["Total Harga", displayTotal],
                 ["Estimasi Selesai", detail.estimasi],
               ].map(([label, val]) => (
-                <div key={label} className="flex gap-3 text-xs">
-                  <span className="w-32 text-gray-500 font-bold uppercase">{label}</span>
-                  <span className="text-gray-600 font-black">:</span>
-                  <span className="font-bold text-gray-900">{val}</span>
+                <div key={label} className="flex gap-2">
+                  <span className="w-36 text-gray-500 font-medium flex-shrink-0">{label}</span>
+                  <span className="text-gray-400 flex-shrink-0">:</span>
+                  <span className="font-semibold text-gray-800">{val}</span>
                 </div>
               ))}
             </div>
 
-            <div className="rounded-2xl overflow-hidden border border-black shadow-sm mb-8">
-              <table className="w-full text-xs border-collapse">
-                <thead className="bg-[#0077b6] text-white">
-                  <tr>
-                    <th className="px-4 py-3 text-left  font-semibold border-b border-black">Item</th>
-                    <th className="px-4 py-3 text-center font-semibold border-b border-l border-black">Jml</th>
-                    <th className="px-4 py-3 text-right  font-semibold border-b border-l border-black">Harga</th>
-                    <th className="px-4 py-3 text-right  font-semibold border-b border-l border-black">Sub Total</th>
+            <div className="border border-black">
+              <table className="w-full text-sm border-collapse border border-black">
+                <thead>
+                  <tr className="bg-[#0077b6] text-white">
+                    <th className="px-3 py-2 text-left font-semibold border border-black">Item</th>
+                    <th className="px-3 py-2 text-right font-semibold border border-black">Jumlah</th>
+                    <th className="px-3 py-2 text-right font-semibold border border-black">Harga satuan</th>
+                    <th className="px-3 py-2 text-right font-semibold border border-black">Sub Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {detail.items.map((row, i) => (
-                    <tr key={i} className={`border-b border-black ${i % 2 === 1 ? "bg-gray-50/50" : "bg-white"}`}>
-                      <td className="px-4 py-2.5 font-bold text-gray-800">{row.item}</td>
-                      <td className="px-4 py-2.5 text-center  font-medium text-gray-700 border-l border-black">{row.jumlah}</td>
-                      <td className="px-4 py-2.5 text-right   font-medium text-gray-700 border-l border-black">{row.harga}</td>
-                      <td className="px-4 py-2.5 text-right   font-bold   text-gray-800 border-l border-black">{row.sub}</td>
+                    <tr key={i} className={`transition hover:bg-blue-100/50 ${i % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}>
+                      <td className="px-3 py-2 text-gray-700 border border-black">{row.item}</td>
+                      <td className="px-3 py-2 text-right text-gray-600 border border-black">{row.jumlah}</td>
+                      <td className="px-3 py-2 text-right text-gray-600 border border-black">{row.harga}</td>
+                      <td className="px-3 py-2 text-right text-gray-700 font-medium border border-black">{row.sub}</td>
                     </tr>
                   ))}
-                  <tr className="bg-[#eaf6fb]">
-                    <td colSpan={3} className="px-4 py-3.5 font-black text-gray-800 uppercase text-right">Total Bayar</td>
-                    <td className="px-4 py-3.5 text-right font-black text-lg text-[#0077b6] border-l border-black">
-                      Rp {total.toLocaleString("id-ID")}
-                    </td>
+                  <tr className="bg-gray-50">
+                    <td colSpan={3} className="px-3 py-2 font-bold text-gray-700 border border-black text-right">Total</td>
+                    <td className="px-3 py-2 text-right font-extrabold text-[#0077b6] border border-black">{displayTotal}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            {/* Tombol Cetak — terhubung ke handlePrint */}
-            <div className="mt-auto">
+            {/* Action Buttons - HANYA TOMBOL CETAK */}
+            <div className="flex items-center justify-start mt-5">
               <button
-                onClick={() => handlePrint(detail)}
-                className="flex items-center gap-2 bg-[#0077b6] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-[#005f92] transition-colors border border-black shadow-sm"
+                onClick={() => handlePrint({ ...detail, totalHarga: displayTotal })}
+                className="flex items-center gap-2 bg-[#0077b6] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#005f92] transition"
               >
-                <Printer size={18} /> Cetak Nota
+                <Printer size={15} /> Cetak Nota
               </button>
             </div>
           </div>
 
-          {/* Kanan: Timeline */}
-          <div className="md:w-56 flex-shrink-0 bg-gray-50 p-5 rounded-2xl border border-black h-fit">
-            <p className="font-bold text-gray-800 text-sm uppercase mb-4 border-b border-black pb-3">Status Pengerjaan</p>
-            <Timeline detail={detail} />
+          {/* RIGHT: Status & Timeline */}
+          <div className="md:w-52 flex-shrink-0">
+            <div className="mb-6 flex flex-col gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+              <div>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Status Saat Ini</span>
+                <span className={`px-3 py-1 rounded-full text-[11px] font-bold border inline-block ${STATUS_BADGE[detail.status] ?? "bg-gray-100 text-gray-500 border-gray-300"}`}>
+                  {detail.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="px-2">
+              {/* Melemparkan data timeline dan index step saat ini (activeStep) */}
+              <Timeline timeline={detail.timeline} activeStep={detail.activeStep} />
+            </div>
           </div>
         </div>
       </div>
@@ -309,8 +335,6 @@ export default function RiwayatPesanan() {
   }, [filterBulan, filterStatus, sortOrder, searchNota, page]);
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
-
-  // Reset ke page 1 saat filter berubah (sudah ditangani di onChange masing-masing)
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
@@ -381,7 +405,7 @@ export default function RiwayatPesanan() {
                 </select>
               </div>
 
-              {/* Bulan — dikirim sebagai nama (Januari dll) ke API */}
+              {/* Bulan */}
               <div>
                 <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">Bulan</p>
                 <select
@@ -464,30 +488,30 @@ export default function RiwayatPesanan() {
                         <td className={`px-4 py-3.5 text-center font-bold text-gray-500 ${isLastRow ? "" : "border-b border-black"}`}>
                           {(page - 1) * PER_PAGE + idx + 1}
                         </td>
-                        <td className={`px-4 py-3.5 text-center font-mono font-bold text-gray-900 border-l border-black ${isLastRow ? "" : "border-b"}`}>
+                        <td className={`px-4 py-3.5 text-center font-mono font-bold text-gray-900 border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
                           {row.nota}
                         </td>
-                        <td className={`px-4 py-3.5 text-center font-bold text-gray-600 border-l border-black ${isLastRow ? "" : "border-b"}`}>
+                        <td className={`px-4 py-3.5 text-center font-bold text-gray-600 border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
                           {row.tanggal}
                         </td>
-                        <td className={`px-4 py-3.5 font-bold text-gray-800 border-l border-black ${isLastRow ? "" : "border-b"}`}>
+                        <td className={`px-4 py-3.5 font-bold text-gray-800 border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
                           {row.layananUtama}
                         </td>
-                        <td className={`px-4 py-3.5 text-center font-black text-gray-700 border-l border-black ${isLastRow ? "" : "border-b"}`}>
+                        <td className={`px-4 py-3.5 text-center font-black text-gray-700 border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
                           {row.berat}
                         </td>
-                        <td className={`px-4 py-3.5 text-center font-black text-[#0077b6] border-l border-black ${isLastRow ? "" : "border-b"}`}>
+                        <td className={`px-4 py-3.5 text-center font-black text-[#0077b6] border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
                           {row.harga}
                         </td>
-                        <td className={`px-4 py-3.5 text-center border-l border-black ${isLastRow ? "" : "border-b"}`}>
+                        <td className={`px-4 py-3.5 text-center border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
                           <span className={`px-3.5 py-1.5 rounded-full text-[10px] font-bold border inline-block ${STATUS_BADGE[row.status] ?? "bg-gray-100 text-gray-500 border-gray-300"}`}>
                             {row.status}
                           </span>
                         </td>
-                        <td className={`px-4 py-3.5 text-center border-l border-black ${isLastRow ? "" : "border-b"}`}>
+                        <td className={`px-4 py-3.5 text-center border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
                           <button
-                            onClick={() => setPopup({ detail: row.detail, status: row.status })}
-                            className="w-8 h-8 rounded-lg bg-blue-50 text-[#0077b6] hover:bg-blue-100 transition-colors flex items-center justify-center mx-auto"
+                            onClick={() => setPopup(row.detail)}
+                            className="w-8 h-8 rounded-lg bg-blue-50 text-[#0077b6] hover:bg-blue-100 transition-colors flex items-center justify-center mx-auto border border-blue-200"
                             title="Lihat Detail"
                           >
                             <Eye size={16} strokeWidth={2.5} />
@@ -545,8 +569,7 @@ export default function RiwayatPesanan() {
       {/* POPUP DETAIL */}
       {popup && (
         <DetailPopup
-          detail={popup.detail}
-          statusLabel={popup.status}
+          detail={popup}
           onClose={() => setPopup(null)}
         />
       )}
