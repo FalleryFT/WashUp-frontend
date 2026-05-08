@@ -6,7 +6,6 @@ import { Eye, X, Printer, ChevronLeft, ChevronRight, WashingMachine, Search, Ref
 import api from "../../api/axios";
 
 // ─── KONSTANTA ────────────────────────────────────────────────────────────────
-const TIMELINE_LABELS = ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"];
 const STATUS_BADGE = {
   "Order Diterima": "bg-blue-100 text-blue-800 border-blue-200",
   "Sedang Dipilah": "bg-purple-100 text-purple-800 border-purple-200",
@@ -23,7 +22,6 @@ const MONTHS = [
 
 const PER_PAGE = 5;
 
-// Disesuaikan dengan controller yang mengirimkan 4 slot
 const TIMELINE_STEPS = [
   "Order Diterima",
   "Sedang Dipilah",
@@ -31,42 +29,78 @@ const TIMELINE_STEPS = [
   "Siap Diambil",
 ];
 
+// ─── HELPER: hitung activeStep dari string status ─────────────────────────────
+function getActiveStep(status) {
+  const map = {
+    "Order Diterima": 0,
+    "Sedang Dipilah": 1,
+    "Sedang Dicuci":  2,
+    "Siap Diambil":   3,
+    "Selesai":        3,
+    "Dibatalkan":     -1,
+  };
+  return map[status] ?? 0;
+}
+
 // ─── TIMELINE (Vertical / Popup) ─────────────────────────────────────────────
-// Menyesuaikan logika pembacaan array of object dari backend:
-// $defaultTimeline = [ ['label' => 'Order Diterima', 'tanggal' => '-'], ... ]
-function Timeline({ timeline, activeStep }) {
-  // Pastikan kita memiliki array timeline yang valid.
-  // Jika tidak, kita gunakan default mapping.
-  const safeTimeline = Array.isArray(timeline) && timeline.length === 4 
-      ? timeline 
-      : TIMELINE_STEPS.map(label => ({ label, tanggal: '-' }));
+function Timeline({ timeline, status }) {
+  const activeStep  = getActiveStep(status);
+  const isCancelled = status === "Dibatalkan";
+
+  // Bangun array aman — fallback ke label saja kalau dari API kosong
+  const safeTimeline = Array.isArray(timeline) && timeline.length === 4
+    ? timeline
+    : TIMELINE_STEPS.map(label => ({ label, tanggal: null }));
 
   return (
     <div className="flex flex-col gap-0">
       {safeTimeline.map((step, i) => {
-        // Logika `done`: Apakah step saat ini (index `i`) kurang dari atau sama dengan `activeStep`
-        const done = i <= activeStep;
+        const done   = !isCancelled && i <= activeStep;
         const isLast = i === safeTimeline.length - 1;
-        
-        // Ambil nilai tanggal dari object (default dari Controller adalah '-')
-        const tgl = step.tanggal;
-        // Kita anggap "belum terjadi" jika tgl adalah '-' atau kosong
-        const hasDate = tgl !== '-' && tgl !== null && tgl !== undefined && tgl !== '';
+
+        const tgl     = step.tanggal;
+        const hasDate = tgl !== null && tgl !== undefined && String(tgl).trim() !== "" && String(tgl).trim() !== "-";
 
         return (
           <div key={i} className="flex items-start gap-3">
+            {/* Dot & connector line */}
             <div className="flex flex-col items-center">
-              <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 ${done ? "bg-green-500 border-green-500" : "bg-white border-gray-300"}`} />
-              {!isLast && <div className={`w-0.5 h-8 ${done && i < activeStep ? "bg-green-500" : "bg-gray-200"}`} />}
+              <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 transition-colors ${
+                isCancelled
+                  ? i === 0 ? "bg-red-400 border-red-400" : "bg-white border-gray-300"
+                  : done
+                    ? "bg-green-500 border-green-500"
+                    : "bg-white border-gray-300"
+              }`} />
+              {!isLast && (
+                <div className={`w-0.5 h-8 transition-colors ${
+                  !isCancelled && done && i < activeStep ? "bg-green-500" : "bg-gray-200"
+                }`} />
+              )}
             </div>
+
+            {/* Label & tanggal */}
             <div className="pb-2">
-              <p className={`text-sm font-bold leading-tight ${done ? "text-gray-800" : "text-gray-300"}`}>
+              <p className={`text-sm font-bold leading-tight ${
+                isCancelled
+                  ? i === 0 ? "text-red-500" : "text-gray-300"
+                  : done ? "text-gray-800" : "text-gray-300"
+              }`}>
                 {step.label}
               </p>
-              {done && hasDate ? (
+
+              {isCancelled && i === 0 ? (
+                // Dibatalkan — hanya tanda di step pertama
+                <p className="text-xs text-red-400 italic">Pesanan dibatalkan</p>
+              ) : done && hasDate ? (
+                // Step sudah terjadi DAN tanggal tersedia dari API → tampilkan tanggal
                 <p className="text-xs text-gray-400 whitespace-pre-line">{tgl}</p>
+              ) : done && !hasDate ? (
+                // Step sudah terjadi tapi API belum kirim tanggal → tampilkan strip
+                <p className="text-xs text-gray-400">-</p>
               ) : (
-                <p className="text-xs text-gray-300">Belum Terjadi</p>
+                // Step belum terjadi
+                <p className="text-xs text-gray-300">Belum terjadi</p>
               )}
             </div>
           </div>
@@ -80,7 +114,7 @@ function Timeline({ timeline, activeStep }) {
 function handlePrint(detailItem) {
   if (!detailItem) return;
 
-  const printWindow = window.open('', '_blank', 'width=800,height=600');
+  const printWindow = window.open("", "_blank", "width=800,height=600");
 
   const itemsHtml = detailItem.items.map(item => `
     <tr>
@@ -89,7 +123,7 @@ function handlePrint(detailItem) {
       <td style="padding:10px;border-bottom:1px dashed #ccc;text-align:right;">${item.harga}</td>
       <td style="padding:10px;border-bottom:1px dashed #ccc;text-align:right;">${item.sub}</td>
     </tr>
-  `).join('');
+  `).join("");
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -122,7 +156,7 @@ function handlePrint(detailItem) {
           <table>
             <tr><td><strong>Nota</strong></td><td>: ${detailItem.nota}</td></tr>
             <tr><td><strong>Nama</strong></td><td>: ${detailItem.nama}</td></tr>
-            <tr><td><strong>Tipe</strong></td><td>: ${detailItem.tipe || 'Reguler'}</td></tr>
+            <tr><td><strong>Tipe</strong></td><td>: ${detailItem.tipe || "Reguler"}</td></tr>
           </table>
           <table>
             <tr><td><strong>Tanggal</strong></td><td>: ${detailItem.tanggalOrder || detailItem.tgl}</td></tr>
@@ -162,49 +196,41 @@ function handlePrint(detailItem) {
 
 // ─── DETAIL POPUP ─────────────────────────────────────────────────────────────
 function DetailPopup({ detail, onClose }) {
-  
-  // Karena totalHarga sudah diformat dengan baik oleh Controller ('Rp 15.000'),
-  // kita bisa langsung menggunakannya. Namun, jika ingin memastikan penjumlahan
-  // akurat dari sub item, berikut cara dinamisnya:
   const calculatedTotal = detail.items?.reduce((sum, item) => {
     if (!item.sub) return sum;
-    // Mengubah string seperti "Rp 15.000" menjadi angka 15000
     const num = parseInt(String(item.sub).replace(/\D/g, ""), 10);
     return sum + (isNaN(num) ? 0 : num);
   }, 0) || 0;
 
-  // Prioritaskan hasil perhitungan frontend jika ada items, jika tidak gunakan totalHarga dari DB
-  const displayTotal = detail.items?.length > 0 
+  const displayTotal = detail.items?.length > 0
     ? `Rp ${calculatedTotal.toLocaleString("id-ID")}`
     : detail.totalHarga;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        
+
         {/* Popup Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-black">
           <h2 className="text-xl font-extrabold text-gray-800">Detail Transaksi</h2>
-          <div className="flex items-center gap-3">
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-2">
-              <X size={20} />
-            </button>
-          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={20} />
+          </button>
         </div>
 
         {/* Body */}
         <div className="flex flex-col md:flex-row gap-6 p-6">
-          
+
           {/* LEFT: Info + Table */}
           <div className="flex-1">
             <div className="space-y-2 mb-5 text-sm">
               {[
-                ["Nota", detail.nota],
-                ["Layanan", detail.layanan],
-                ["Tanggal Order", detail.tanggalOrder || detail.tgl],
-                ["Nama", detail.nama],
-                ["Total Berat", detail.totalBerat || detail.berat],
-                ["Total Harga", displayTotal],
+                ["Nota",             detail.nota],
+                ["Layanan",          detail.layanan],
+                ["Tanggal Order",    detail.tanggalOrder || detail.tgl],
+                ["Nama",             detail.nama],
+                ["Total Berat",      `${String(detail.totalBerat || detail.berat).replace(/kg/i, "").trim()} kg`],
+                ["Total Harga",      displayTotal],
                 ["Estimasi Selesai", detail.estimasi],
               ].map(([label, val]) => (
                 <div key={label} className="flex gap-2">
@@ -242,7 +268,7 @@ function DetailPopup({ detail, onClose }) {
               </table>
             </div>
 
-            {/* Action Buttons - HANYA TOMBOL CETAK */}
+            {/* Cetak Nota */}
             <div className="flex items-center justify-start mt-5">
               <button
                 onClick={() => handlePrint({ ...detail, totalHarga: displayTotal })}
@@ -265,8 +291,8 @@ function DetailPopup({ detail, onClose }) {
             </div>
 
             <div className="px-2">
-              {/* Melemparkan data timeline dan index step saat ini (activeStep) */}
-              <Timeline timeline={detail.timeline} activeStep={detail.activeStep} />
+              {/* Kirim status → activeStep dihitung di dalam Timeline */}
+              <Timeline timeline={detail.timeline} status={detail.status} />
             </div>
           </div>
         </div>
@@ -290,10 +316,10 @@ function TableSkeleton() {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function RiwayatPesanan() {
-  const { user }   = useAuth();
-  const namaUser   = user?.name || user?.username || "Pelanggan";
+  const { user }  = useAuth();
+  const namaUser  = user?.name || user?.username || "Pelanggan";
 
-  // ── State filter (dikontrol frontend → dikirim ke API) ────────────────────
+  // ── State filter
   const [filterBulan,  setFilterBulan]  = useState("Semua");
   const [filterStatus, setFilterStatus] = useState("Semua");
   const [sortOrder,    setSortOrder]    = useState("Terbaru");
@@ -301,23 +327,23 @@ export default function RiwayatPesanan() {
   const [page,         setPage]         = useState(1);
   const [popup,        setPopup]        = useState(null);
 
-  // ── State data dari API ───────────────────────────────────────────────────
+  // ── State data dari API
   const [rows,       setRows]       = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [total,      setTotal]      = useState(0);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState(null);
 
-  // ── Fetch dari API ─────────────────────────────────────────────────────────
+  // ── Fetch dari API
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const { data } = await api.get("/customer/history", {
         params: {
-          status:   filterStatus,   // "Semua" | "Selesai" | dll
-          bulan:    filterBulan,    // "Semua" | "Januari" | dll (nama bulan)
-          sort:     sortOrder,      // "Terbaru" | "Terlama"
+          status:   filterStatus,
+          bulan:    filterBulan,
+          sort:     sortOrder,
           nota:     searchNota || undefined,
           page,
           per_page: PER_PAGE,
@@ -461,7 +487,7 @@ export default function RiwayatPesanan() {
                   <th className="px-4 py-3.5 text-center font-bold border-b-2 border-black w-12">No</th>
                   <th className="px-4 py-3.5 text-center font-bold border-b-2 border-l-2 border-black">NOTA</th>
                   <th className="px-4 py-3.5 text-center font-bold border-b-2 border-l-2 border-black">Tgl Order</th>
-                  <th className="px-4 py-3.5 text-left   font-bold border-b-2 border-l-2 border-black">Layanan Utama</th>
+                  <th className="px-4 py-3.5 text-left   font-bold border-b-2 border-l-2 border-black">Layanan</th>
                   <th className="px-4 py-3.5 text-center font-bold border-b-2 border-l-2 border-black">Berat</th>
                   <th className="px-4 py-3.5 text-center font-bold border-b-2 border-l-2 border-black">Total Harga</th>
                   <th className="px-4 py-3.5 text-center font-bold border-b-2 border-l-2 border-black">Status</th>
@@ -480,6 +506,37 @@ export default function RiwayatPesanan() {
                 ) : (
                   rows.map((row, idx) => {
                     const isLastRow = idx === rows.length - 1;
+
+                    // --- Kalkulasi Harga Dinamis ---
+                    const calculatedTotal = row.detail?.items?.reduce((sum, item) => {
+                      if (!item.sub) return sum;
+                      const num = parseInt(String(item.sub).replace(/\D/g, ""), 10);
+                      return sum + (isNaN(num) ? 0 : num);
+                    }, 0) || 0;
+
+                    const displayTotal = row.detail?.items?.length > 0
+                      ? `Rp ${calculatedTotal.toLocaleString("id-ID")}`
+                      : row.harga;
+
+                    // --- NAMA LAYANAN ---
+                    // Index 0 (kiloan) → tampilkan nama layanan dari detail.layanan / layananUtama
+                    // Index > 0 (addon) → tampilkan nama item + qty
+                    const namaLayananUtama = row.detail?.layanan || row.layananUtama || "-";
+                    const displayLayanan = row.detail?.items?.length > 0
+                      ? row.detail.items.map((item, index) => {
+                          if (index === 0) {
+                            return namaLayananUtama;
+                          } else {
+                            const qtyMatch = String(item.jumlah).match(/\d+/);
+                            const qty = qtyMatch ? qtyMatch[0] : "1";
+                            return `${item.item} ${qty}x`;
+                          }
+                        }).join(" + ")
+                      : namaLayananUtama;
+
+                    // --- Berat ---
+                    const displayBerat = `${String(row.berat).replace(/kg/i, "").trim()} kg`;
+
                     return (
                       <tr
                         key={row.id}
@@ -495,13 +552,13 @@ export default function RiwayatPesanan() {
                           {row.tanggal}
                         </td>
                         <td className={`px-4 py-3.5 font-bold text-gray-800 border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
-                          {row.layananUtama}
+                          {displayLayanan}
                         </td>
                         <td className={`px-4 py-3.5 text-center font-black text-gray-700 border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
-                          {row.berat}
+                          {displayBerat}
                         </td>
                         <td className={`px-4 py-3.5 text-center font-black text-[#0077b6] border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
-                          {row.harga}
+                          {displayTotal}
                         </td>
                         <td className={`px-4 py-3.5 text-center border-l border-black ${isLastRow ? "" : "border-b border-black"}`}>
                           <span className={`px-3.5 py-1.5 rounded-full text-[10px] font-bold border inline-block ${STATUS_BADGE[row.status] ?? "bg-gray-100 text-gray-500 border-gray-300"}`}>
