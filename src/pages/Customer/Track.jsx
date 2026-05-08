@@ -11,16 +11,16 @@ import api from "../../api/axios";
 // ─── KONFIGURASI STATUS ───────────────────────────────────────────────────────
 // 4 step aktif yang ditampilkan di progress bar (urutan proses)
 const STEPS = [
-  { key: "Order Diterima",  Icon: ClipboardList, label: "Diterima"   },
+  { key: "Order Di Terima",  Icon: ClipboardList, label: "Diterima"   },
   { key: "Sedang Di Pilah", Icon: Layers,         label: "Di Pilah"  },
-  { key: "Sedang Dicuci",   Icon: WashingMachine, label: "Dicuci"    },
-  { key: "Siap Diambil",    Icon: PackageCheck,   label: "Siap Ambil"},
+  { key: "Sedang Di Cuci",   Icon: WashingMachine, label: "Dicuci"    },
+  { key: "Siap Di Ambil",    Icon: PackageCheck,   label: "Siap Ambil"},
 ];
 
 // Status → index step pada progress bar
 const STATUS_STEP = {
   "Order Diterima":  0,
-  "Sedang Di Pilah": 1,
+  "Sedang Dipilah": 1,
   "Sedang Dicuci":   2,
   "Siap Diambil":    3,
 };
