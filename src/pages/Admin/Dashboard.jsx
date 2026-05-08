@@ -12,12 +12,12 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════════
 // KONSTANTA
 // ═══════════════════════════════════════════════════════════════════════════════
-const TIMELINE_LABELS = ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"];
+const TIMELINE_LABELS = ["Order Di Terima", "Sedang Di Pilah", "Sedang Di Cuci", "Siap Di Ambil"];
 const PER_PAGE        = 5;
 
 const STATUS_MAP = {
   "Order Diterima": "bg-blue-100 text-blue-700",
-    "Sedang Di Pilah": "bg-purple-100 text-purple-700",
+    "Sedang Dipilah": "bg-purple-100 text-purple-700",
     "Sedang Dicuci":  "bg-yellow-100 text-yellow-700",
     "Siap Diambil":   "bg-cyan-100 text-cyan-700",
     "Selesai":        "bg-green-100 text-green-700",

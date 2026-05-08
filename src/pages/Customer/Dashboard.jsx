@@ -15,17 +15,17 @@ import {
 
 // 4 step aktif — urutan & label HARUS sama persis dengan Track.jsx & controller
 const STEPS = [
-  { icon: ClipboardList, label: "Diterima"    },  // 0 = Order Diterima
+  { icon: ClipboardList, label: "Di Terima"    },  // 0 = Order Diterima
   { icon: Layers,        label: "Di Pilah"    },  // 1 = Sedang Di Pilah
-  { icon: WashingMachine,label: "Dicuci"      },  // 2 = Sedang Dicuci
-  { icon: PackageCheck,  label: "Siap Diambil"},  // 3 = Siap Diambil
+  { icon: WashingMachine,label: "Di Cuci"      },  // 2 = Sedang Dicuci
+  { icon: PackageCheck,  label: "Siap Di Ambil"},  // 3 = Siap Diambil
 ];
 
 const STATUS_BADGE = {
   "Selesai":         "bg-[#d8f3dc] text-green-800 border-green-200",
   "Dibatalkan":      "bg-[#ffddd2] text-red-800 border-red-200",
   "Order Diterima":  "bg-blue-100 text-blue-800 border-blue-200",
-  "Sedang Di Pilah": "bg-purple-100 text-purple-800 border-purple-200",
+  "Sedang Dipilah": "bg-purple-100 text-purple-800 border-purple-200",
   "Sedang Dicuci":   "bg-[#fdf0d5] text-yellow-800 border-yellow-200",
   "Siap Diambil":    "bg-cyan-100 text-cyan-800 border-cyan-200",
 };

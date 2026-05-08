@@ -42,7 +42,7 @@ function Counter({ value, onChange }) {
 }
 
 /** Modal sukses setelah transaksi tersimpan */
-function SuccessModal({ data, onReset, onClose, onPrint }) {
+function SuccessModal({ data, onReset, onPrint }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
@@ -72,7 +72,7 @@ function SuccessModal({ data, onReset, onClose, onPrint }) {
             Transaksi Baru
           </button>
           <button
-            onClick={() => { onPrint(); onClose(); }}
+            onClick={() => { onPrint(); }}
             className="flex-1 bg-[#0077b6] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#005f92] transition flex items-center justify-center gap-2"
           >
             <Printer size={15} /> Cetak
@@ -359,7 +359,6 @@ export default function NewTransaction() {
         <SuccessModal
           data={successData}
           onReset={handleReset}
-          onClose={() => setSuccessData(null)}
           onPrint={() => handlePrint(successData)} 
         />
       )}
