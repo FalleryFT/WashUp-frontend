@@ -22,44 +22,40 @@ const MONTHS = [
 
 const PER_PAGE = 5;
 
+// Label 4 step — harus sesuai dengan TIMELINE_LABELS di controller
 const TIMELINE_STEPS = [
-  "Order Diterima",
-  "Sedang Dipilah",
-  "Sedang Dicuci",
-  "Siap Diambil",
+  "Order Di Terima",
+  "Sedang Di Pilah",
+  "Sedang Di Cuci",
+  "Siap Di Ambil",
 ];
 
-// ─── HELPER: hitung activeStep dari string status ─────────────────────────────
-function getActiveStep(status) {
-  const map = {
-    "Order Diterima": 0,
-    "Sedang Dipilah": 1,
-    "Sedang Dicuci":  2,
-    "Siap Diambil":   3,
-    "Selesai":        3,
-    "Dibatalkan":     -1,
-  };
-  return map[status] ?? 0;
-}
-
 // ─── TIMELINE (Vertical / Popup) ─────────────────────────────────────────────
+// timeline = array 4 slot dari controller:
+//   null              → step belum terjadi
+//   "Label\nTanggal"  → step sudah terjadi, tanggal ada di bagian setelah \n
+// Format IDENTIK dengan yang dipakai Dashboard.jsx
 function Timeline({ timeline, status }) {
-  const activeStep  = getActiveStep(status);
   const isCancelled = status === "Dibatalkan";
 
-  // Bangun array aman — fallback ke label saja kalau dari API kosong
+  // Pastikan selalu 4 slot
   const safeTimeline = Array.isArray(timeline) && timeline.length === 4
     ? timeline
-    : TIMELINE_STEPS.map(label => ({ label, tanggal: null }));
+    : [null, null, null, null];
 
   return (
     <div className="flex flex-col gap-0">
-      {safeTimeline.map((step, i) => {
-        const done   = !isCancelled && i <= activeStep;
-        const isLast = i === safeTimeline.length - 1;
+      {TIMELINE_STEPS.map((label, i) => {
+        const info   = safeTimeline[i];
+        // Step dianggap done jika slot-nya bukan null/undefined
+        const done   = !isCancelled && info !== null && info !== undefined;
+        const isLast = i === TIMELINE_STEPS.length - 1;
 
-        const tgl     = step.tanggal;
-        const hasDate = tgl !== null && tgl !== undefined && String(tgl).trim() !== "" && String(tgl).trim() !== "-";
+        // Ambil tanggal: split "Label\nTanggal", ambil bagian [1]
+        // Sama persis dengan cara baca di Dashboard.jsx: info.split("\n")[1]
+        const tanggal = done && typeof info === "string"
+          ? (info.split("\n")[1] || "")
+          : null;
 
         return (
           <div key={i} className="flex items-start gap-3">
@@ -74,7 +70,9 @@ function Timeline({ timeline, status }) {
               }`} />
               {!isLast && (
                 <div className={`w-0.5 h-8 transition-colors ${
-                  !isCancelled && done && i < activeStep ? "bg-green-500" : "bg-gray-200"
+                  !isCancelled && done && safeTimeline[i + 1] !== null && safeTimeline[i + 1] !== undefined
+                    ? "bg-green-500"
+                    : "bg-gray-200"
                 }`} />
               )}
             </div>
@@ -86,17 +84,16 @@ function Timeline({ timeline, status }) {
                   ? i === 0 ? "text-red-500" : "text-gray-300"
                   : done ? "text-gray-800" : "text-gray-300"
               }`}>
-                {step.label}
+                {label}
               </p>
 
               {isCancelled && i === 0 ? (
-                // Dibatalkan — hanya tanda di step pertama
                 <p className="text-xs text-red-400 italic">Pesanan dibatalkan</p>
-              ) : done && hasDate ? (
-                // Step sudah terjadi DAN tanggal tersedia dari API → tampilkan tanggal
-                <p className="text-xs text-gray-400 whitespace-pre-line">{tgl}</p>
-              ) : done && !hasDate ? (
-                // Step sudah terjadi tapi API belum kirim tanggal → tampilkan strip
+              ) : done && tanggal && tanggal !== "-" ? (
+                // Tanggal tersedia dari DB → tampilkan
+                <p className="text-xs text-gray-400 whitespace-pre-line">{tanggal}</p>
+              ) : done && (!tanggal || tanggal === "-") ? (
+                // Step sudah terjadi tapi tanggal belum tercatat
                 <p className="text-xs text-gray-400">-</p>
               ) : (
                 // Step belum terjadi
@@ -291,7 +288,7 @@ function DetailPopup({ detail, onClose }) {
             </div>
 
             <div className="px-2">
-              {/* Kirim status → activeStep dihitung di dalam Timeline */}
+              {/* Timeline baca format null | "Label\nTanggal" — sama dengan Dashboard.jsx */}
               <Timeline timeline={detail.timeline} status={detail.status} />
             </div>
           </div>
@@ -518,19 +515,14 @@ export default function RiwayatPesanan() {
                       ? `Rp ${calculatedTotal.toLocaleString("id-ID")}`
                       : row.harga;
 
-                    // --- NAMA LAYANAN ---
-                    // Index 0 (kiloan) → tampilkan nama layanan dari detail.layanan / layananUtama
-                    // Index > 0 (addon) → tampilkan nama item + qty
+                    // --- Nama Layanan ---
                     const namaLayananUtama = row.detail?.layanan || row.layananUtama || "-";
                     const displayLayanan = row.detail?.items?.length > 0
                       ? row.detail.items.map((item, index) => {
-                          if (index === 0) {
-                            return namaLayananUtama;
-                          } else {
-                            const qtyMatch = String(item.jumlah).match(/\d+/);
-                            const qty = qtyMatch ? qtyMatch[0] : "1";
-                            return `${item.item} ${qty}x`;
-                          }
+                          if (index === 0) return namaLayananUtama;
+                          const qtyMatch = String(item.jumlah).match(/\d+/);
+                          const qty = qtyMatch ? qtyMatch[0] : "1";
+                          return `${item.item} ${qty}x`;
                         }).join(" + ")
                       : namaLayananUtama;
 

@@ -3,8 +3,8 @@ import AdminSidebar from "../../components/AdminSidebar";
 import api from "../../api/axios"; 
 import { Search, Printer, Trash2, Eye, X, ChevronLeft, ChevronRight, ArrowRightCircle, Undo2 } from "lucide-react";
 
-const TIMELINE_LABELS = ["Order di terima", "Sedang Di Pilah", "Sedang Di cuci", "Siap Di ambil"];
-const TABS = ["SEMUA", "Order Diterima", "Sedang DiPilah", "Sedang DiCuci", "SIAP AMBIL", "SELESAI", "DIBATALKAN"];
+const TIMELINE_LABELS = ["Order Di Terima", "Sedang Di Pilah", "Sedang Di Cuci", "Siap Di Ambil"];
+const TABS = ["SEMUA", "Order Di Terima", "Sedang Di Pilah", "Sedang Di Cuci", "Siap Di Ambil", "SELESAI", "DIBATALKAN"];
 const PER_PAGE = 10;
 
 // Fungsi helper untuk generate 12 bulan terakhir secara dinamis
@@ -49,7 +49,7 @@ const calculateRealTotal = (items) => {
 function StatusBadge({ status }) {
   const map = {
     "Order Diterima": "bg-blue-100 text-blue-700",
-    "Sedang Di Pilah": "bg-purple-100 text-purple-700",
+    "Sedang Dipilah": "bg-purple-100 text-purple-700",
     "Sedang Dicuci": "bg-yellow-100 text-yellow-700",
     "Siap Diambil": "bg-cyan-100 text-cyan-700",
     "Selesai": "bg-green-100 text-green-700",
