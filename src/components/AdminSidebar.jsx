@@ -46,8 +46,8 @@ function SidebarBody({ url, user, onLogout, onClose }) {
     { href: "/admin/new-transaction", icon: <PlusSquare size={20} />, text: "New Transaction" },
     { href: "/admin/orders", icon: <ListOrdered size={20} />, text: "Order List" },
     { href: "/admin/customers", icon: <Users size={20} />, text: "Customer Data" },
-    { href: "/admin/notifications", icon: <Bell size={20} />, text: "Notifikasi" },
-    { href: "/admin/chat", icon: <MessageSquare size={20} />, text: "Chat Customer" },
+    // { href: "/admin/notifications", icon: <Bell size={20} />, text: "Notifikasi" },
+    // { href: "/admin/chat", icon: <MessageSquare size={20} />, text: "Chat Customer" },
     { href: "/admin/reports", icon: <FileText size={20} />, text: "Financial Reports" },
     { href: "/admin/price", icon: <Settings size={20} />, text: "Price Setting" },
   ];

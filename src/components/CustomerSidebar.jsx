@@ -50,8 +50,8 @@ function SidebarBody({ url, user, onLogout, onClose }) {
     { href: "/customer/dashboard",     icon: <LayoutDashboard size={20} />, text: "Dashboard"         },
     { href: "/customer/track",         icon: <Search size={20} />,          text: "Lacak Pesanan"    },
     { href: "/customer/history",       icon: <History size={20} />,         text: "Riwayat Pesanan"  },
-    { href: "/customer/notifications", icon: <Bell size={20} />,            text: "Notifikasi"       },
-    { href: "/customer/chat",          icon: <MessageSquare size={20} />,   text: "Chat Admin"       },
+    // { href: "/customer/notifications", icon: <Bell size={20} />,            text: "Notifikasi"       },
+    // { href: "/customer/chat",          icon: <MessageSquare size={20} />,   text: "Chat Admin"       },
     { href: "/customer/profile",       icon: <UserCircle size={20} />,      text: "Profil Saya"       },
   ];
 
