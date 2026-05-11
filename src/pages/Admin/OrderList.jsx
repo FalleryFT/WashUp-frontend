@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AdminSidebar from "../../components/AdminSidebar";
 import api from "../../api/axios"; 
-import { Search, Printer, Trash2, Eye, X, ChevronLeft, ChevronRight, ArrowRightCircle } from "lucide-react";
+import { Search, Printer, Trash2, Eye, X, ChevronLeft, ChevronRight, ArrowRightCircle, Undo2 } from "lucide-react";
 
 const TIMELINE_LABELS = ["Order Di Terima", "Sedang Di Pilah", "Sedang Di Cuci", "Siap Di Ambil"];
 const TABS = ["SEMUA", "Order Di Terima", "Sedang Di Pilah", "Sedang Di Cuci", "Siap Di Ambil", "SELESAI", "DIBATALKAN"];
@@ -20,6 +20,12 @@ const generateMonthOptions = () => {
   return options;
 };
 const MONTH_OPTIONS = generateMonthOptions();
+
+// Default: nilai bulan ini dalam format YYYY-MM
+const getCurrentMonthValue = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+};
 
 // FUNGSI BARU: Untuk menghitung total valid dari semua sub-total item (kiloan + satuan)
 const calculateRealTotal = (items) => {
@@ -98,13 +104,26 @@ export default function OrderList() {
   const [filterStatus, setFilterStatus] = useState("SEMUA"); 
   const [search, setSearch] = useState("");
   const [filterTipe, setFilterTipe] = useState("Semua Tipe");
-  const [filterBulan, setFilterBulan] = useState("Semua Bulan"); 
+  // ✅ FIX: Default filter bulan = bulan ini, bukan "Semua Bulan"
+  const [filterBulan, setFilterBulan] = useState(getCurrentMonthValue());
   const [sort, setSort] = useState("latest");
   const [page, setPage] = useState(1);
 
   const [detailItem, setDetailItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
   const [deleteFromDetail, setDeleteFromDetail] = useState(false);
+
+  // ✅ Helper: update 1 row di state data (tanpa refetch semua)
+  const updateRowById = useCallback((id, updatedOrder) => {
+    setData(prev => prev.map(o => o.id === id ? updatedOrder : o));
+    // Jika popup detail sedang buka untuk row ini, update juga
+    setDetailItem(prev => prev && prev.id === id ? updatedOrder : prev);
+  }, []);
+
+  // ✅ Helper: hapus 1 row dari state data (tanpa refetch semua)
+  const removeRowById = useCallback((id) => {
+    setData(prev => prev.filter(o => o.id !== id));
+  }, []);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -120,13 +139,6 @@ export default function OrderList() {
       });
       if (response.data.success) {
         setData(response.data.data);
-
-        if (detailItem) {
-          const updatedDetail = response.data.data.find(o => o.id === detailItem.id);
-          if (updatedDetail) {
-            setDetailItem(updatedDetail);
-          }
-        }
       }
     } catch (error) {
       console.error("Gagal mengambil data pesanan", error);
@@ -148,14 +160,27 @@ export default function OrderList() {
   const handleFilterBulan = (e) => { setFilterBulan(e.target.value); setPage(1); }; 
   const handleSortChange = (e) => { setSort(e.target.value); setPage(1); };
 
+  // ✅ Next Status — hanya reload 1 row
   const handleNextStatus = async (item) => {
     try {
       const response = await api.post(`/orders/${item.id}/next-status`);
       if (response.data.success) {
-        fetchOrders();
+        updateRowById(item.id, response.data.data);
       }
     } catch (error) {
       console.error("Gagal memperbarui status", error);
+    }
+  };
+
+  // ✅ Undo / Prev Status — hanya reload 1 row
+  const handleUndoStatus = async (item) => {
+    try {
+      const response = await api.post(`/orders/${item.id}/prev-status`);
+      if (response.data.success) {
+        updateRowById(item.id, response.data.data);
+      }
+    } catch (error) {
+      console.error("Gagal undo status", error);
     }
   };
 
@@ -164,15 +189,25 @@ export default function OrderList() {
     setDeleteFromDetail(fromDetail);
   };
 
+  // ✅ Delete/Cancel — hanya update/hapus 1 row
   const confirmDelete = async () => {
     try {
       const response = await api.delete(`/orders/${deleteItem.id}`);
       if (response.data.success) {
+        const isSoftDelete = deleteItem.status === "Selesai" || deleteItem.status === "Dibatalkan";
         setDeleteItem(null);
-        if (deleteFromDetail) {
-          setDetailItem(null);
+
+        if (isSoftDelete) {
+          // Row dihapus permanen → buang dari list
+          removeRowById(deleteItem.id);
+          if (deleteFromDetail) setDetailItem(null);
+        } else {
+          // Status berubah jadi "Dibatalkan" → update row
+          if (response.data.data) {
+            updateRowById(deleteItem.id, response.data.data);
+          }
+          if (deleteFromDetail) setDetailItem(null);
         }
-        fetchOrders();
       }
     } catch (error) {
       console.error("Gagal menghapus/membatalkan pesanan", error);
@@ -285,6 +320,13 @@ export default function OrderList() {
   // Variabel untuk menampilkan total yang dihitung secara dinamis di Popup Detail
   const computedTotalDetail = detailItem ? calculateRealTotal(detailItem.items) : "Rp 0";
 
+  // ✅ Apakah order bisa di-undo: sudah melewati status pertama & bukan Dibatalkan
+  const STATUS_SEQUENCE = ['Order Diterima', 'Sedang Di Pilah', 'Sedang Dicuci', 'Siap Diambil', 'Selesai'];
+  const canUndo = (item) => {
+    const idx = STATUS_SEQUENCE.indexOf(item.status);
+    return idx > 0; // bisa undo jika bukan index 0 dan bukan Dibatalkan
+  };
+
   return (
     <AdminSidebar>
       {/* Header */}
@@ -306,7 +348,7 @@ export default function OrderList() {
         </h1>
       </div>
 
-      {/* FILTER & PENCARIAN TIPE BARU */}
+      {/* FILTER & PENCARIAN */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-sm mb-8">
         <p className="font-bold text-gray-800 uppercase text-sm mb-4">Filter & Pencarian</p>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-5">
@@ -340,7 +382,7 @@ export default function OrderList() {
               </select>
             </div>
 
-            {/* Bulan */}
+            {/* Bulan — ✅ Default: bulan ini */}
             <div>
               <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">Bulan</p>
               <select
@@ -443,6 +485,7 @@ export default function OrderList() {
                       </td>
                       <td className={`px-4 py-3 text-center ${!isLastRow ? "border-b border-black" : ""}`}>
                         <div className="flex items-center justify-center gap-2">
+                          {/* ✅ Tombol Next Status */}
                           {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
                             <button
                               onClick={() => handleNextStatus(item)}
@@ -450,6 +493,16 @@ export default function OrderList() {
                               title="Lanjutkan Status"
                             >
                               <ArrowRightCircle size={14} />
+                            </button>
+                          )}
+                          {/* ✅ Tombol Undo Status */}
+                          {canUndo(item) && item.status !== "Dibatalkan" && (
+                            <button
+                              onClick={() => handleUndoStatus(item)}
+                              className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-200 text-orange-500 hover:bg-orange-100 transition flex items-center justify-center"
+                              title="Undo Status"
+                            >
+                              <Undo2 size={14} />
                             </button>
                           )}
                           <button
@@ -539,7 +592,7 @@ export default function OrderList() {
                     ["Tanggal Order", detailItem.tgl],
                     ["Nama", detailItem.nama],
                     ["Total Berat", detailItem.berat],
-                    ["Total Harga", computedTotalDetail], // Diperbarui menggunakan dinamis
+                    ["Total Harga", computedTotalDetail],
                     ["Estimasi Selesai", detailItem.estimasi],
                   ].map(([label, val]) => (
                     <div key={label} className="flex gap-2">
@@ -571,7 +624,6 @@ export default function OrderList() {
                       ))}
                       <tr className="bg-gray-50">
                         <td colSpan={3} className="px-3 py-2 font-bold text-gray-700 border border-black text-right">Total</td>
-                        {/* Diperbarui menggunakan dinamis */}
                         <td className="px-3 py-2 text-right font-extrabold text-[#0077b6] border border-black">{computedTotalDetail}</td>
                       </tr>
                     </tbody>
@@ -594,8 +646,18 @@ export default function OrderList() {
                     </button>
                   </div>
                   
-                  {/* Tombol Fase Berikutnya */}
+                  {/* Tombol Aksi Status */}
                   <div className="flex gap-2">
+                    {/* ✅ Tombol Undo di Popup Detail */}
+                    {canUndo(detailItem) && detailItem.status !== "Dibatalkan" && (
+                      <button
+                        onClick={() => handleUndoStatus(detailItem)}
+                        className="flex items-center gap-2 bg-orange-50 border-2 border-orange-400 text-orange-500 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-100 transition"
+                      >
+                        <Undo2 size={15} /> Undo Status
+                      </button>
+                    )}
+                    {/* Tombol Fase Berikutnya */}
                     {detailItem.status !== "Selesai" && detailItem.status !== "Dibatalkan" && (
                       <button
                         onClick={() => handleNextStatus(detailItem)}

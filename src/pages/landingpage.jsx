@@ -8,17 +8,17 @@ import logoImage               from "../assets/logo.png";
 
 // ── Konstanta label timeline — sama dengan Dashboard.jsx ──────────────────────
 const TIMELINE_LABELS = [
-  'Order di terima',
+  'Order Di Terima',
   'Sedang Di Pilah',
-  'Sedang Di cuci',
-  'Siap Di ambil',
+  'Sedang Di Cuci',
+  'Siap Di Ambil',
 ];
 
 // ── Badge status ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const STATUS_MAP = {
     "Order Diterima":  "bg-blue-100 text-blue-700 border border-blue-200",
-    "Sedang Di Pilah": "bg-purple-100 text-purple-700 border border-purple-200",
+    "Sedang Dipilah": "bg-purple-100 text-purple-700 border border-purple-200",
     "Sedang Dicuci":   "bg-yellow-100 text-yellow-700 border border-yellow-200",
     "Siap Diambil":    "bg-cyan-100 text-cyan-700 border border-cyan-200",
     "Selesai":         "bg-green-100 text-green-700 border border-green-200",
@@ -198,7 +198,12 @@ export default function LandingPage() {
   const [trackError, setTrackError]   = useState('');
 
   const scrollTo = (id) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    const el = document.getElementById(id);
+    if (el) {
+      const navbarHeight = 64; // sesuaikan jika navbar lebih tinggi/rendah
+      const top = el.getBoundingClientRect().top + window.scrollY - navbarHeight;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
     setMenuOpen(false);
   };
 
