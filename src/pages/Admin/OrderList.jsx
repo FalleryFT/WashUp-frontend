@@ -101,10 +101,12 @@ function Timeline({ timeline }) {
 export default function OrderList() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  // ✅ STATE BARU: Untuk memblokir tombol saat API sedang berjalan
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const [filterStatus, setFilterStatus] = useState("SEMUA"); 
   const [search, setSearch] = useState("");
   const [filterTipe, setFilterTipe] = useState("Semua Tipe");
-  // ✅ FIX: Default filter bulan = bulan ini, bukan "Semua Bulan"
   const [filterBulan, setFilterBulan] = useState(getCurrentMonthValue());
   const [sort, setSort] = useState("latest");
   const [page, setPage] = useState(1);
@@ -113,14 +115,11 @@ export default function OrderList() {
   const [deleteItem, setDeleteItem] = useState(null);
   const [deleteFromDetail, setDeleteFromDetail] = useState(false);
 
-  // ✅ Helper: update 1 row di state data (tanpa refetch semua)
   const updateRowById = useCallback((id, updatedOrder) => {
     setData(prev => prev.map(o => o.id === id ? updatedOrder : o));
-    // Jika popup detail sedang buka untuk row ini, update juga
     setDetailItem(prev => prev && prev.id === id ? updatedOrder : prev);
   }, []);
 
-  // ✅ Helper: hapus 1 row dari state data (tanpa refetch semua)
   const removeRowById = useCallback((id) => {
     setData(prev => prev.filter(o => o.id !== id));
   }, []);
@@ -160,8 +159,10 @@ export default function OrderList() {
   const handleFilterBulan = (e) => { setFilterBulan(e.target.value); setPage(1); }; 
   const handleSortChange = (e) => { setSort(e.target.value); setPage(1); };
 
-  // ✅ Next Status — hanya reload 1 row
+  // ✅ PERBARUI: Tambahkan validasi & setIsProcessing
   const handleNextStatus = async (item) => {
+    if (isProcessing) return; // Cegah klik ganda
+    setIsProcessing(true);
     try {
       const response = await api.post(`/orders/${item.id}/next-status`);
       if (response.data.success) {
@@ -169,11 +170,15 @@ export default function OrderList() {
       }
     } catch (error) {
       console.error("Gagal memperbarui status", error);
+    } finally {
+      setIsProcessing(false); // Buka kembali tombol
     }
   };
 
-  // ✅ Undo / Prev Status — hanya reload 1 row
+  // ✅ PERBARUI: Tambahkan validasi & setIsProcessing
   const handleUndoStatus = async (item) => {
+    if (isProcessing) return; // Cegah klik ganda
+    setIsProcessing(true);
     try {
       const response = await api.post(`/orders/${item.id}/prev-status`);
       if (response.data.success) {
@@ -181,6 +186,8 @@ export default function OrderList() {
       }
     } catch (error) {
       console.error("Gagal undo status", error);
+    } finally {
+      setIsProcessing(false); // Buka kembali tombol
     }
   };
 
@@ -189,8 +196,10 @@ export default function OrderList() {
     setDeleteFromDetail(fromDetail);
   };
 
-  // ✅ Delete/Cancel — hanya update/hapus 1 row
+  // ✅ PERBARUI: Blokir delete ganda
   const confirmDelete = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     try {
       const response = await api.delete(`/orders/${deleteItem.id}`);
       if (response.data.success) {
@@ -198,11 +207,9 @@ export default function OrderList() {
         setDeleteItem(null);
 
         if (isSoftDelete) {
-          // Row dihapus permanen → buang dari list
           removeRowById(deleteItem.id);
           if (deleteFromDetail) setDetailItem(null);
         } else {
-          // Status berubah jadi "Dibatalkan" → update row
           if (response.data.data) {
             updateRowById(deleteItem.id, response.data.data);
           }
@@ -211,6 +218,8 @@ export default function OrderList() {
       }
     } catch (error) {
       console.error("Gagal menghapus/membatalkan pesanan", error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -230,7 +239,6 @@ export default function OrderList() {
       </tr>
     `).join('');
 
-    // Gunakan fungsi hitung dinamis agar total yang tercetak benar
     const computedTotal = calculateRealTotal(detailItem.items);
 
     const htmlContent = `
@@ -316,15 +324,12 @@ export default function OrderList() {
   };
 
   const isSoftDeleteMode = deleteItem && (deleteItem.status === "Selesai" || deleteItem.status === "Dibatalkan");
-  
-  // Variabel untuk menampilkan total yang dihitung secara dinamis di Popup Detail
   const computedTotalDetail = detailItem ? calculateRealTotal(detailItem.items) : "Rp 0";
 
-  // ✅ Apakah order bisa di-undo: sudah melewati status pertama & bukan Dibatalkan
   const STATUS_SEQUENCE = ['Order Diterima', 'Sedang Di Pilah', 'Sedang Dicuci', 'Siap Diambil', 'Selesai'];
   const canUndo = (item) => {
     const idx = STATUS_SEQUENCE.indexOf(item.status);
-    return idx > 0; // bisa undo jika bukan index 0 dan bukan Dibatalkan
+    return idx > 0;
   };
 
   return (
@@ -382,7 +387,7 @@ export default function OrderList() {
               </select>
             </div>
 
-            {/* Bulan — ✅ Default: bulan ini */}
+            {/* Bulan */}
             <div>
               <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5 ml-1">Bulan</p>
               <select
@@ -485,29 +490,33 @@ export default function OrderList() {
                       </td>
                       <td className={`px-4 py-3 text-center ${!isLastRow ? "border-b border-black" : ""}`}>
                         <div className="flex items-center justify-center gap-2">
-                          {/* ✅ Tombol Next Status */}
+                          {/* ✅ Ditambahkan disabled={isProcessing} & styling khusus saat disabled */}
                           {item.status !== "Selesai" && item.status !== "Dibatalkan" && (
                             <button
                               onClick={() => handleNextStatus(item)}
-                              className="w-8 h-8 rounded-lg bg-green-50 border border-green-200 text-green-500 hover:bg-green-100 transition flex items-center justify-center"
+                              disabled={isProcessing}
+                              className="w-8 h-8 rounded-lg bg-green-50 border border-green-200 text-green-500 hover:bg-green-100 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Lanjutkan Status"
                             >
                               <ArrowRightCircle size={14} />
                             </button>
                           )}
-                          {/* ✅ Tombol Undo Status */}
+                          {/* ✅ Ditambahkan disabled={isProcessing} & styling khusus saat disabled */}
                           {canUndo(item) && item.status !== "Dibatalkan" && (
                             <button
                               onClick={() => handleUndoStatus(item)}
-                              className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-200 text-orange-500 hover:bg-orange-100 transition flex items-center justify-center"
+                              disabled={isProcessing}
+                              className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-200 text-orange-500 hover:bg-orange-100 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Undo Status"
                             >
                               <Undo2 size={14} />
                             </button>
                           )}
+                          {/* ✅ Ditambahkan disabled={isProcessing} */}
                           <button
                             onClick={() => openDelete(item)}
-                            className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition flex items-center justify-center"
+                            disabled={isProcessing}
+                            className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                             title={item.status === "Selesai" || item.status === "Dibatalkan" ? "Hapus Permanen" : "Batalkan Order"}
                           >
                             <Trash2 size={14} />
@@ -571,20 +580,20 @@ export default function OrderList() {
       ══════════════════════════════════════════ */}
       {detailItem && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            
             {/* Popup Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-black">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-black bg-gray-50 sticky top-0 z-10">
               <h2 className="text-xl font-extrabold text-gray-800">Detail Transaksi</h2>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setDetailItem(null)} className="text-gray-400 hover:text-gray-600 ml-2">
-                  <X size={20} />
-                </button>
-              </div>
+              {/* Tombol Close */}
+              <button onClick={() => setDetailItem(null)} className="text-gray-400 hover:text-gray-600 transition">
+                <X size={24} />
+              </button>
             </div>
 
             <div className="flex flex-col md:flex-row gap-6 p-6">
               {/* LEFT: Info + Table */}
-              <div className="flex-1">
+              <div className="flex-1 flex flex-col">
                 <div className="space-y-2 mb-5 text-sm">
                   {[
                     ["Nota", detailItem.nota],
@@ -603,7 +612,7 @@ export default function OrderList() {
                   ))}
                 </div>
 
-                <div className="border border-black">
+                <div className="border border-black flex-1">
                   <table className="w-full text-sm border-collapse border border-black">
                     <thead>
                       <tr className="bg-[#0077b6] text-white">
@@ -630,44 +639,50 @@ export default function OrderList() {
                   </table>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center justify-between mt-5">
-                  <div className="flex gap-2">
-                    <button onClick={handlePrint} className="flex items-center gap-2 bg-[#0077b6] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#005f92] transition">
+                {/* Action Buttons: Cetak di Kiri, Aksi Status di KANAN BAWAH */}
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-8 pt-4 border-t border-gray-200 gap-4">
+                  {/* KIRI */}
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <button onClick={handlePrint} className="flex items-center justify-center gap-2 bg-[#0077b6] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#005f92] transition whitespace-nowrap">
                       <Printer size={15} /> Cetak
                     </button>
-                    {/* Tombol Hapus/Batal */}
+                    
                     <button
                       onClick={() => openDelete(detailItem, true)}
-                      className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-500 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-100 transition"
+                      disabled={isProcessing}
+                      className="flex items-center justify-center gap-2 bg-red-50 border border-red-200 text-red-500 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-100 transition whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Trash2 size={15} /> 
-                      {detailItem.status === "Selesai" || detailItem.status === "Dibatalkan" ? "Hapus" : "Batalkan"}
+                      {detailItem.status === "Selesai" || detailItem.status === "Dibatalkan" ? "Hapus Permanen" : "Batalkan Order"}
                     </button>
                   </div>
-                  
-                  {/* Tombol Aksi Status */}
-                  <div className="flex gap-2">
-                    {/* ✅ Tombol Undo di Popup Detail */}
+
+                  {/* KANAN BAWAH (Pojok Kanan) */}
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+                    {/* ✅ Ditambahkan disabled={isProcessing} dan ubah text saat diproses */}
                     {canUndo(detailItem) && detailItem.status !== "Dibatalkan" && (
                       <button
                         onClick={() => handleUndoStatus(detailItem)}
-                        className="flex items-center gap-2 bg-orange-50 border-2 border-orange-400 text-orange-500 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-100 transition"
+                        disabled={isProcessing}
+                        className="flex items-center justify-center gap-2 bg-orange-50 border border-orange-400 text-orange-500 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-100 transition whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Undo2 size={15} /> Undo Status
+                        <Undo2 size={15} /> {isProcessing ? "Memproses..." : "Undo Status"}
                       </button>
                     )}
-                    {/* Tombol Fase Berikutnya */}
+                    
+                    {/* ✅ Ditambahkan disabled={isProcessing} dan ubah text saat diproses */}
                     {detailItem.status !== "Selesai" && detailItem.status !== "Dibatalkan" && (
                       <button
                         onClick={() => handleNextStatus(detailItem)}
-                        className="flex items-center gap-2 bg-green-50 border-2 border-green-500 text-green-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-100 transition"
+                        disabled={isProcessing}
+                        className="flex items-center justify-center gap-2 bg-green-50 border border-green-500 text-green-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-100 transition whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <ArrowRightCircle size={15} /> Fase Berikutnya
+                        <ArrowRightCircle size={15} /> {isProcessing ? "Memproses..." : "Fase Berikutnya"}
                       </button>
                     )}
                   </div>
                 </div>
+
               </div>
 
               {/* RIGHT: Status & Timeline */}
@@ -718,15 +733,18 @@ export default function OrderList() {
             </p>
             
             <div className="flex gap-3 mt-4">
+              {/* ✅ Tombol Confirm Delete diblokir saat processing */}
               <button
                 onClick={confirmDelete}
-                className="flex-1 bg-red-50 border-2 border-red-400 text-red-500 py-2.5 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors"
+                disabled={isProcessing}
+                className="flex-1 bg-red-50 border-2 border-red-400 text-red-500 py-2.5 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSoftDeleteMode ? "Hapus" : "Batalkan"}
+                {isProcessing ? "..." : (isSoftDeleteMode ? "Hapus" : "Batalkan")}
               </button>
               <button
                 onClick={cancelDelete}
-                className="flex-1 border-2 border-[#00b4d8] text-[#00b4d8] py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors"
+                disabled={isProcessing}
+                className="flex-1 border-2 border-[#00b4d8] text-[#00b4d8] py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Kembali
               </button>
