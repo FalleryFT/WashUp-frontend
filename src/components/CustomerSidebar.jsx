@@ -1,43 +1,54 @@
 // src/components/CustomerSidebar.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Search,
   History,
   Bell,
-  MessageSquare,
   UserCircle,
   LogOut,
-  // Waves, // Ikon Waves dihapus
+  MessageSquare,
   Menu as MenuIcon,
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import logoImage from "../assets/logo.png";
+import axios from "../api/axios";
 
 // ─────────────────────────────────────────────────────
 // Menu Item
 // ─────────────────────────────────────────────────────
-function MenuItem({ href, icon, text, active = false, onClick }) {
+function MenuItem({ href, icon, text, active = false, onClick, badge }) {
   const base =
     "flex items-center gap-4 px-6 py-3 transition-colors duration-200 font-semibold w-full text-left";
-  const activeClass = "bg-[#0369A1] text-white";
+  const activeClass   = "bg-[#0369A1] text-white";
   const inactiveClass = "hover:bg-[#0EA5E0] text-blue-50";
+
+  const content = (
+    <>
+      <span className={active ? "text-white" : "text-blue-100"}>{icon}</span>
+      <span className="text-[15px] flex-1">{text}</span>
+      {/* Badge unread */}
+      {badge > 0 && (
+        <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center leading-none shadow-sm">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+    </>
+  );
 
   if (onClick) {
     return (
       <button onClick={onClick} className={`${base} ${active ? activeClass : inactiveClass}`}>
-        <span className={active ? "text-white" : "text-blue-100"}>{icon}</span>
-        <span className="text-[15px]">{text}</span>
+        {content}
       </button>
     );
   }
 
   return (
     <Link to={href} className={`${base} ${active ? activeClass : inactiveClass}`}>
-      <span className={active ? "text-white" : "text-blue-100"}>{icon}</span>
-      <span className="text-[15px]">{text}</span>
+      {content}
     </Link>
   );
 }
@@ -45,23 +56,22 @@ function MenuItem({ href, icon, text, active = false, onClick }) {
 // ─────────────────────────────────────────────────────
 // Sidebar body
 // ─────────────────────────────────────────────────────
-function SidebarBody({ url, user, onLogout, onClose }) {
+function SidebarBody({ url, user, onLogout, onClose, unreadCount }) {
   const navItems = [
-    { href: "/customer/dashboard",     icon: <LayoutDashboard size={20} />, text: "Dashboard"         },
+    { href: "/customer/dashboard",     icon: <LayoutDashboard size={20} />, text: "Dashboard"        },
     { href: "/customer/track",         icon: <Search size={20} />,          text: "Lacak Pesanan"    },
     { href: "/customer/history",       icon: <History size={20} />,         text: "Riwayat Pesanan"  },
-    // { href: "/customer/notifications", icon: <Bell size={20} />,            text: "Notifikasi"       },
+    { href: "/customer/notifications", icon: <Bell size={20} />,            text: "Notifikasi", badge: unreadCount },
     // { href: "/customer/chat",          icon: <MessageSquare size={20} />,   text: "Chat Admin"       },
-    { href: "/customer/profile",       icon: <UserCircle size={20} />,      text: "Profil Saya"       },
+    { href: "/customer/profile",       icon: <UserCircle size={20} />,      text: "Profil Saya"      },
   ];
 
   return (
     <div className="w-72 bg-[#0077b6] text-white h-full flex flex-col font-sans overflow-hidden">
-      
-      {/* Brand - Logo Besar dan Full */}
+
+      {/* Brand */}
       <div className="p-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-0"> {/* Jarak ditingkatkan */}
-          {/* LOGO BARU DI SINI */}
+        <div className="flex items-center gap-0">
           <img
             src={logoImage}
             alt="WashUp Logo"
@@ -91,7 +101,7 @@ function SidebarBody({ url, user, onLogout, onClose }) {
         </div>
       </div>
 
-      {/* Nav (Hanya bagian ini yang bisa di-scroll) */}
+      {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4">
         <div className="flex flex-col">
           {navItems.map((item) => (
@@ -101,12 +111,13 @@ function SidebarBody({ url, user, onLogout, onClose }) {
               icon={item.icon}
               text={item.text}
               active={url === item.href}
+              badge={item.badge}
             />
           ))}
         </div>
       </nav>
 
-      {/* Logout pinned to bottom (polosan tanpa border) */}
+      {/* Logout */}
       <div className="shrink-0 bg-[#0077b6] pt-2 pb-6 mt-auto">
         <MenuItem icon={<LogOut size={20} />} text="Logout" onClick={onLogout} />
       </div>
@@ -121,12 +132,42 @@ export default function CustomerSidebar({ children }) {
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]             = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // ── Polling unread count setiap 30 detik ─────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchUnread = async () => {
+      try {
+        const res = await axios.get("/customer/notifications/unread-count");
+        if (!cancelled) setUnreadCount(res.data.count ?? 0);
+      } catch {
+        // Gagal fetch: biarkan badge tetap kosong, jangan crash
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30_000); // refresh tiap 30 detik
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // ── Reset badge ke 0 saat user buka halaman notifikasi ───────────────────
+  useEffect(() => {
+    if (pathname === "/customer/notifications") {
+      setUnreadCount(0);
+    }
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
       if (logout) await logout();
-      navigate("/LandingPage"); // Mengarahkan ke LandingPage setelah logout
+      navigate("/LandingPage");
     } catch (error) {
       console.error("Logout failed", error);
     }
@@ -134,12 +175,17 @@ export default function CustomerSidebar({ children }) {
 
   return (
     <div className="flex min-h-screen bg-gray-50 relative">
-      {/* Mobile hamburger */}
+      {/* Mobile hamburger — tampilkan dot merah jika ada unread */}
       <button
         onClick={() => setOpen(true)}
         className="md:hidden fixed top-4 left-4 z-50 bg-[#0077b6] text-white p-2 rounded-lg shadow-lg"
       >
-        <MenuIcon size={22} />
+        <span className="relative">
+          <MenuIcon size={22} />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 rounded-full border border-white" />
+          )}
+        </span>
       </button>
 
       {/* Mobile overlay */}
@@ -150,7 +196,7 @@ export default function CustomerSidebar({ children }) {
         />
       )}
 
-      {/* Sidebar Drawer & Desktop Sticky */}
+      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-72 h-screen transform transition-transform duration-300 md:sticky md:top-0 md:translate-x-0 shrink-0 ${
           open ? "translate-x-0" : "-translate-x-full"
@@ -161,10 +207,11 @@ export default function CustomerSidebar({ children }) {
           user={user}
           onLogout={handleLogout}
           onClose={() => setOpen(false)}
+          unreadCount={unreadCount}
         />
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <main className="flex-1 w-full p-4 md:p-8 pt-20 md:pt-8 min-h-screen overflow-x-hidden">
         {children}
       </main>
