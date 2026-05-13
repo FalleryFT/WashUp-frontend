@@ -6,7 +6,7 @@ import api from '../../api/axios';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
-  const [noHp, setNoHp] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState('input'); // 'input' | 'sent'
   const [error, setError] = useState('');
@@ -14,11 +14,11 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
 
   const handleSendOtp = async () => {
-    if (!noHp) { setError('Nomor HP wajib diisi'); return; }
+    if (!email) { setError('Email wajib diisi'); return; }
     setLoading(true);
     setError('');
     try {
-      const res = await api.post('/send-otp', { no_hp: noHp });
+      const res = await api.post('/send-otp', { email });
       setInfo(res.data.message + (res.data.otp ? ` (Dev OTP: ${res.data.otp})` : ''));
       setStep('sent');
     } catch (err) {
@@ -33,9 +33,9 @@ const ForgotPassword = () => {
     setLoading(true);
     setError('');
     try {
-      await api.post('/verify-otp', { no_hp: noHp, otp });
-      // Simpan no_hp ke sessionStorage untuk halaman reset password
-      sessionStorage.setItem('reset_no_hp', noHp);
+      await api.post('/verify-otp', { email, otp });
+      // Simpan email ke sessionStorage untuk halaman reset password
+      sessionStorage.setItem('reset_email', email);
       navigate('/new-password');
     } catch (err) {
       setError(err.response?.data?.message || 'OTP tidak valid');
@@ -47,7 +47,7 @@ const ForgotPassword = () => {
   return (
     <AuthLayout>
       <h2 className="text-3xl font-bold text-[#1a3d5c] mb-2">Password Recovery</h2>
-      <p className="text-gray-500 text-sm mb-5">Enter your phone number to recovery your password</p>
+      <p className="text-gray-500 text-sm mb-5">Enter your email to recover your password</p>
 
       {error && (
         <div className="mb-3 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">
@@ -60,13 +60,13 @@ const ForgotPassword = () => {
         </div>
       )}
 
-      {/* No HP + Send OTP */}
+      {/* Email + Send OTP */}
       <div className="flex border border-gray-300 rounded-xl overflow-hidden shadow-sm mb-4">
         <input
-          type="tel"
-          placeholder="No HP"
-          value={noHp}
-          onChange={(e) => { setNoHp(e.target.value); setError(''); }}
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setError(''); }}
           className="flex-1 px-4 py-3 text-gray-700 focus:outline-none"
         />
         <button
@@ -79,7 +79,7 @@ const ForgotPassword = () => {
       </div>
 
       {/* OTP input */}
-      <p className="text-gray-500 text-sm mb-2">Enter the OTP sent to your number</p>
+      <p className="text-gray-500 text-sm mb-2">Enter the OTP sent to your email</p>
       <input
         type="text"
         placeholder="OTP"

@@ -26,8 +26,9 @@ const NewPassword = () => {
       setError('Password minimal 6 karakter'); return;
     }
 
-    const noHp = sessionStorage.getItem('reset_no_hp');
-    if (!noHp) {
+    // Ambil email dari sessionStorage (bukan no_hp)
+    const email = sessionStorage.getItem('reset_email');
+    if (!email) {
       setError('Sesi expired, ulangi proses dari awal');
       navigate('/forgot-password');
       return;
@@ -36,11 +37,11 @@ const NewPassword = () => {
     setLoading(true);
     try {
       await api.post('/reset-password', {
-        no_hp: noHp,
+        email,
         password: form.password,
         password_confirmation: form.password_confirmation,
       });
-      sessionStorage.removeItem('reset_no_hp');
+      sessionStorage.removeItem('reset_email');
       navigate('/login', { state: { message: 'Password berhasil diperbarui! Silakan login.' } });
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal memperbarui password');
