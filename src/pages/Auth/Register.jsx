@@ -8,7 +8,7 @@ const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    username: '', no_hp: '', alamat: '', password: '', password_confirmation: ''
+    username: '', email: '', no_hp: '', alamat: '', password: '', password_confirmation: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ const Register = () => {
   };
 
   const handleSubmit = async () => {
-    if (!form.username || !form.no_hp || !form.alamat || !form.password) {
+    if (!form.username || !form.email || !form.no_hp || !form.alamat || !form.password) {
       setError('Semua field wajib diisi');
       return;
     }
@@ -57,6 +57,11 @@ const Register = () => {
         <input
           type="text" name="username" placeholder="Username"
           value={form.username} onChange={handleChange}
+          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#5bbfe8] shadow-sm transition"
+        />
+        <input
+          type="email" name="email" placeholder="Email"
+          value={form.email} onChange={handleChange}
           className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#5bbfe8] shadow-sm transition"
         />
         <input

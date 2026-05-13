@@ -18,13 +18,12 @@ export default function Login() {
 
   const handleSubmit = async () => {
     if (!form.username || !form.password) {
-      setError('Username dan password wajib diisi');
+      setError('Username/No HP/Email dan password wajib diisi');
       return;
     }
     setLoading(true);
     try {
       const data = await login(form.username, form.password);
-      // Redirect berdasarkan role
       navigate(getDashboardPath(data.user));
     } catch (err) {
       setError(err.response?.data?.message || 'Login gagal. Periksa kembali data Anda.');
@@ -44,19 +43,30 @@ export default function Login() {
       )}
 
       <div className="space-y-4">
-        <input type="text" name="username" placeholder="Username"
-          value={form.username} onChange={handleChange}
+        <input
+          type="text"
+          name="username"
+          placeholder="Username / No HP / Email"
+          value={form.username}
+          onChange={handleChange}
           className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#5bbfe8] focus:border-transparent shadow-sm transition"
         />
-        <input type="password" name="password" placeholder="Password"
-          value={form.password} onChange={handleChange}
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={handleChange}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#5bbfe8] focus:border-transparent shadow-sm transition"
         />
       </div>
 
-      <button onClick={handleSubmit} disabled={loading}
-        className="mt-5 w-full bg-[#5bbfe8] hover:bg-[#3aaad4] text-white font-semibold py-3 rounded-xl transition duration-200 shadow-md disabled:opacity-60">
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="mt-5 w-full bg-[#5bbfe8] hover:bg-[#3aaad4] text-white font-semibold py-3 rounded-xl transition duration-200 shadow-md disabled:opacity-60"
+      >
         {loading ? 'Memproses...' : 'Login'}
       </button>
 
