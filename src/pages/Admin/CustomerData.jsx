@@ -1,7 +1,7 @@
 // src/pages/Admin/CustomerData.jsx
 import { useState, useEffect } from "react";
 import AdminSidebar from "../../components/AdminSidebar";
-import api from "../../api/axios"; // Mengimpor axios instance Anda
+import api from "../../api/axios";
 import { Search, Trash2, Pencil, X, ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
 
 const PER_PAGE = 10;
@@ -13,18 +13,17 @@ export default function CustomerData() {
   const [page, setPage] = useState(1);
 
   // Popups
-  const [editItem, setEditItem] = useState(null); 
-  const [deleteItem, setDeleteItem] = useState(null); 
-  const [addOpen, setAddOpen] = useState(false);  
+  const [editItem, setEditItem] = useState(null);
+  const [deleteItem, setDeleteItem] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
 
-  // Form state untuk edit & tambah (Ditambahkan field password)
-  const [form, setForm] = useState({ name: "", phone: "", address: "", password: "" });
+  // Form state — ditambahkan field email
+  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", password: "" });
 
   // ── Ambil Data dari API (Read) ──
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      // Mengirim keyword pencarian langsung ke server side
       const response = await api.get(`/customers?search=${search}`);
       if (response.data.success) {
         setData(response.data.data);
@@ -38,7 +37,7 @@ export default function CustomerData() {
 
   useEffect(() => {
     fetchCustomers();
-  }, [search]); // Ambil ulang data setiap kali pencarian berubah
+  }, [search]);
 
   // ── Pagination logic ──
   const totalPages = Math.max(1, Math.ceil(data.length / PER_PAGE));
@@ -51,7 +50,7 @@ export default function CustomerData() {
 
   // ── Open Create ──
   const openAdd = () => {
-    setForm({ name: "", phone: "", address: "", password: "" });
+    setForm({ name: "", email: "", phone: "", address: "", password: "" });
     setAddOpen(true);
   };
 
@@ -70,7 +69,7 @@ export default function CustomerData() {
 
   // ── Open Edit ──
   const openEdit = (item) => {
-    setForm({ name: item.name, phone: item.phone, address: item.address, password: "" });
+    setForm({ name: item.name, email: item.email || "", phone: item.phone, address: item.address, password: "" });
     setEditItem(item);
   };
 
@@ -157,6 +156,7 @@ export default function CustomerData() {
                 <th className="px-4 py-3 text-center font-semibold w-12 border border-black">No</th>
                 <th className="px-4 py-3 text-center font-semibold border border-black">ID</th>
                 <th className="px-4 py-3 text-center font-semibold border border-black">Nama</th>
+                <th className="px-4 py-3 text-center font-semibold border border-black">Email</th>
                 <th className="px-4 py-3 text-center font-semibold border border-black">NO HP</th>
                 <th className="px-4 py-3 text-left font-semibold border border-black">Alamat</th>
                 <th className="px-4 py-3 text-center font-semibold w-24 border border-black">Aksi</th>
@@ -165,11 +165,11 @@ export default function CustomerData() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-500 border border-black">Sedang memuat data...</td>
+                  <td colSpan={7} className="text-center py-10 text-gray-500 border border-black">Sedang memuat data...</td>
                 </tr>
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-400 border border-black">Tidak ada data</td>
+                  <td colSpan={7} className="text-center py-10 text-gray-400 border border-black">Tidak ada data</td>
                 </tr>
               ) : (
                 paginated.map((item, idx) => (
@@ -180,6 +180,7 @@ export default function CustomerData() {
                     <td className="px-4 py-3 text-center text-gray-600 border border-black">{(page - 1) * PER_PAGE + idx + 1}</td>
                     <td className="px-4 py-3 text-center font-mono text-gray-700 border border-black">{item.id}</td>
                     <td className="px-4 py-3 text-center font-medium text-gray-800 border border-black">{item.name}</td>
+                    <td className="px-4 py-3 text-center text-gray-600 border border-black">{item.email || "-"}</td>
                     <td className="px-4 py-3 text-center text-gray-600 border border-black">{item.phone}</td>
                     <td className="px-4 py-3 text-gray-600 text-xs leading-relaxed max-w-xs border border-black">{item.address}</td>
                     <td className="px-4 py-3 border border-black">
@@ -265,6 +266,18 @@ export default function CustomerData() {
                 />
               </div>
 
+              {/* Field Email — tampil di mode tambah & edit */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-[#eaf6fb] focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition"
+                  placeholder="contoh@email.com"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Nomor HP</label>
                 <input
@@ -276,7 +289,7 @@ export default function CustomerData() {
                 />
               </div>
 
-              {/* Tampilkan input password HANYA jika sedang mode tambah (addOpen) */}
+              {/* Password hanya tampil saat mode tambah */}
               {addOpen && (
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">Password</label>
@@ -305,8 +318,12 @@ export default function CustomerData() {
             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={addOpen ? saveAdd : saveEdit}
-                // Validasi agar tombol dinonaktifkan jika password kosong saat menambah data
-                disabled={!form.name.trim() || !form.phone.trim() || (addOpen && !form.password?.trim())}
+                disabled={
+                  !form.name.trim() ||
+                  !form.email.trim() ||
+                  !form.phone.trim() ||
+                  (addOpen && !form.password?.trim())
+                }
                 className="flex-1 bg-[#0077b6] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#005f92] transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Simpan
