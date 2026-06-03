@@ -107,7 +107,7 @@ export default function NewTransaction() {
 
   // Detail cucian
   const [berat, setBerat]   = useState("");
-  const [layananId, setLayananId] = useState(null); // id service kiloan
+  const [layananId, setLayananId] = useState(null); // id service kiloan (Default null)
   // addons: { [service_id]: quantity }
   const [addons, setAddons] = useState({});
 
@@ -124,11 +124,6 @@ export default function NewTransaction() {
         setKiloanList(data.kiloan ?? []);
         setAddonList(data.addon ?? []);
         setMaxBerat(data.max_berat ?? 7);
-
-        // Default layanan = kiloan pertama
-        if (data.kiloan?.length > 0) {
-          setLayananId(data.kiloan[0].id);
-        }
 
         // Init addons state: semua 0
         const addonInit = {};
@@ -193,15 +188,17 @@ export default function NewTransaction() {
     ? (selectedCustomer?.name ?? "")
     : nonMemberName;
 
-  const beratNum     = parseFloat(berat || 0);
+  const beratNum      = parseFloat(berat || 0);
   const beratMelebihi = beratNum > maxBerat;
+
+  // ── VALIDASI LOGIKA DINAMIS (KILOAN ATAU ADDON) ──────────────────────────
+  const hasKiloan = berat !== "" && beratNum > 0 && layananId !== null;
+  const hasAddons = addonList.some((a) => (addons[a.id] ?? 0) > 0);
 
   const isFormValid =
     customerName.trim() !== "" &&
-    berat !== "" &&
-    beratNum > 0 &&
     !beratMelebihi &&
-    layananId !== null;
+    (hasKiloan || hasAddons);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleMemberSelect = (type) => {
@@ -227,13 +224,14 @@ export default function NewTransaction() {
     setNonMemberName("");
     setNonMemberPhone("");
     setBerat("");
-    if (kiloanList.length > 0) setLayananId(kiloanList[0].id);
+    setLayananId(null); 
+    
     const addonReset = {};
     addonList.forEach((a) => { addonReset[a.id] = 0; });
     setAddons(addonReset);
     setSuccessData(null);
     setSubmitError(null);
-  }, [kiloanList, addonList]);
+  }, [addonList]);
 
   // ── Submit ke API ──────────────────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -252,15 +250,21 @@ export default function NewTransaction() {
         user_id:        isMember === "member" ? selectedCustomer?.id : null,
         customer_name:  customerName,
         customer_phone: isMember === "non-member" ? nonMemberPhone || null : null,
-        service_id:     layananId,
-        weight:         parseFloat(berat),
+        service_id:     hasKiloan ? layananId : null, 
+        weight:         hasKiloan ? parseFloat(berat) : 0,  
         addons:         addonPayload,
       };
 
       const { data } = await api.post("/admin/transactions", payload);
 
       if (data.success) {
-        setSuccessData(data.data);
+        // Intersepsi data respons jika hanya mengisi addon/satuan
+        const finalData = {
+          ...data.data,
+          layanan: (!hasKiloan && hasAddons) ? "Hanya Satuan" : (data.data.layanan ?? "-"),
+          berat: (!hasKiloan && hasAddons) ? "0 Kg" : (data.data.berat ?? "0 Kg"),
+        };
+        setSuccessData(finalData);
       }
     } catch (err) {
       const msg = err.response?.data?.message ?? "Transaksi gagal disimpan. Coba lagi.";
@@ -271,82 +275,81 @@ export default function NewTransaction() {
   };
 
   const handlePrint = (detailItem) => {
-  if (!detailItem) return;
+    if (!detailItem) return;
 
-  const printWindow = window.open('', '_blank', 'width=800,height=600');
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
 
-  // Mapping items dari data API — sesuaikan field dengan respons API kamu
-  const itemsHtml = (detailItem.items ?? []).map(item => `
-    <tr>
-      <td style="padding:10px;border-bottom:1px dashed #ccc;">${item.item ?? item.nama ?? '-'}</td>
-      <td style="padding:10px;border-bottom:1px dashed #ccc;text-align:center;">${item.jumlah ?? item.quantity ?? '-'}</td>
-      <td style="padding:10px;border-bottom:1px dashed #ccc;text-align:right;">${item.harga ?? '-'}</td>
-      <td style="padding:10px;border-bottom:1px dashed #ccc;text-align:right;">${item.sub ?? item.subtotal ?? '-'}</td>
-    </tr>
-  `).join('');
+    const itemsHtml = (detailItem.items ?? []).map(item => `
+      <tr>
+        <td style="padding:10px;border-bottom:1px dashed #ccc;">${item.item ?? item.nama ?? '-'}</td>
+        <td style="padding:10px;border-bottom:1px dashed #ccc;text-align:center;">${item.jumlah ?? item.quantity ?? '-'}</td>
+        <td style="padding:10px;border-bottom:1px dashed #ccc;text-align:right;">${item.harga ?? '-'}</td>
+        <td style="padding:10px;border-bottom:1px dashed #ccc;text-align:right;">${item.sub ?? item.subtotal ?? '-'}</td>
+      </tr>
+    `).join('');
 
-  const htmlContent = `
-    <!DOCTYPE html><html>
-    <head>
-      <title>Cetak Nota - ${detailItem.nota}</title>
-      <style>
-        body { font-family:'Courier New',Courier,monospace; color:#333; max-width:600px; margin:0 auto; padding:20px; }
-        .header { text-align:center; border-bottom:2px dashed #333; padding-bottom:15px; margin-bottom:20px; }
-        .header h1 { margin:0; font-size:24px; color:#0077b6; }
-        .header p { margin:5px 0 0; font-size:14px; color:#666; }
-        .info-grid { display:flex; justify-content:space-between; margin-bottom:20px; font-size:14px; }
-        .info-grid td { padding:3px 10px 3px 0; }
-        .table { width:100%; border-collapse:collapse; margin-bottom:20px; font-size:14px; }
-        .table th { border-bottom:2px dashed #333; padding:10px; text-align:left; }
-        .table th.center { text-align:center; } .table th.right { text-align:right; }
-        .total-section { border-top:2px dashed #333; padding-top:15px; text-align:right; font-size:16px; }
-        .footer { text-align:center; margin-top:40px; font-size:12px; color:#666; border-top:1px dashed #ccc; padding-top:20px; }
-        @media print { body { padding:0; margin:20px; } button { display:none; } }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>WASHUP LAUNDRY</h1>
-        <p>Bukti Transaksi Pesanan</p>
-      </div>
-      <div class="info-grid">
-        <table>
-          <tr><td><strong>Nota</strong></td><td>: ${detailItem.nota}</td></tr>
-          <tr><td><strong>Nama</strong></td><td>: ${detailItem.nama}</td></tr>
-          <tr><td><strong>Tipe</strong></td><td>: ${detailItem.tipe}</td></tr>
+    const htmlContent = `
+      <!DOCTYPE html><html>
+      <head>
+        <title>Cetak Nota - ${detailItem.nota}</title>
+        <style>
+          body { font-family:'Courier New',Courier,monospace; color:#333; max-width:600px; margin:0 auto; padding:20px; }
+          .header { text-align:center; border-bottom:2px dashed #333; padding-bottom:15px; margin-bottom:20px; }
+          .header h1 { margin:0; font-size:24px; color:#0077b6; }
+          .header p { margin:5px 0 0; font-size:14px; color:#666; }
+          .info-grid { display:flex; justify-content:space-between; margin-bottom:20px; font-size:14px; }
+          .info-grid td { padding:3px 10px 3px 0; }
+          .table { width:100%; border-collapse:collapse; margin-bottom:20px; font-size:14px; }
+          .table th { border-bottom:2px dashed #333; padding:10px; text-align:left; }
+          .table th.center { text-align:center; } .table th.right { text-align:right; }
+          .total-section { border-top:2px dashed #333; padding-top:15px; text-align:right; font-size:16px; }
+          .footer { text-align:center; margin-top:40px; font-size:12px; color:#666; border-top:1px dashed #ccc; padding-top:20px; }
+          @media print { body { padding:0; margin:20px; } button { display:none; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>WASHUP LAUNDRY</h1>
+          <p>Bukti Transaksi Pesanan</p>
+        </div>
+        <div class="info-grid">
+          <table>
+            <tr><td><strong>Nota</strong></td><td>: ${detailItem.nota}</td></tr>
+            <tr><td><strong>Nama</strong></td><td>: ${detailItem.nama}</td></tr>
+            <tr><td><strong>Tipe</strong></td><td>: ${detailItem.tipe}</td></tr>
+          </table>
+          <table>
+            <tr><td><strong>Tanggal</strong></td><td>: ${detailItem.tgl}</td></tr>
+            <tr><td><strong>Estimasi</strong></td><td>: ${detailItem.estimasi}</td></tr>
+            <tr><td><strong>Layanan</strong></td><td>: ${detailItem.layanan}</td></tr>
+          </table>
+        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Item / Layanan</th>
+              <th class="center">Jumlah</th>
+              <th class="right">Harga</th>
+              <th class="right">Sub Total</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHtml}</tbody>
         </table>
-        <table>
-          <tr><td><strong>Tanggal</strong></td><td>: ${detailItem.tgl}</td></tr>
-          <tr><td><strong>Estimasi</strong></td><td>: ${detailItem.estimasi}</td></tr>
-          <tr><td><strong>Layanan</strong></td><td>: ${detailItem.layanan}</td></tr>
-        </table>
-      </div>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Item / Layanan</th>
-            <th class="center">Jumlah</th>
-            <th class="right">Harga</th>
-            <th class="right">Sub Total</th>
-          </tr>
-        </thead>
-        <tbody>${itemsHtml}</tbody>
-      </table>
-      <div class="total-section">
-        <strong>Total Bayar: <span style="color:#0077b6;font-size:20px;">${detailItem.totalHarga}</span></strong>
-      </div>
-      <div class="footer">
-        <p>Terima kasih telah mempercayakan pakaian Anda di WashUp Laundry.</p>
-        <p>Harap bawa nota ini saat pengambilan.</p>
-      </div>
-      <script>window.onload=function(){window.print();setTimeout(()=>{window.close();},500);}<\/script>
-    </body></html>
-  `;
+        <div class="total-section">
+          <strong>Total Bayar: <span style="color:#0077b6;font-size:20px;">${detailItem.totalHarga}</span></strong>
+        </div>
+        <div class="footer">
+          <p>Terima kasih telah mempercayakan pakaian Anda di WashUp Laundry.</p>
+          <p>Harap bawa nota ini saat pengambilan.</p>
+        </div>
+        <script>window.onload=function(){window.print();setTimeout(()=>{window.close();},500);}<\/script>
+      </body></html>
+    `;
 
-  printWindow.document.open();
-  printWindow.document.write(htmlContent);
-  printWindow.document.close();
-};
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
@@ -584,10 +587,12 @@ export default function NewTransaction() {
                   <div className="relative">
                     <select
                       value={layananId ?? ""}
-                      onChange={(e) => setLayananId(Number(e.target.value))}
+                      onChange={(e) => setLayananId(e.target.value ? Number(e.target.value) : null)}
                       className="w-full appearance-none border border-gray-200 rounded-lg px-4 py-3 bg-[#eaf6fb] text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/30 transition pr-10"
                     >
-                      {kiloanList.map((k) => (
+                      <option value="" disabled>-- Pilih Layanan Kiloan --</option>
+                      {/* PERUBAHAN: menggunakan .slice(1) agar tidak menampilkan data item pertama */}
+                      {kiloanList.slice(1).map((k) => (
                         <option key={k.id} value={k.id}>
                           {k.nama} — {fmtRupiah(k.harga)}/Kg
                         </option>
@@ -648,7 +653,7 @@ export default function NewTransaction() {
               {berat && parseFloat(berat) > 0 && selectedKiloan && (
                 <div className="flex justify-between">
                   <span className="text-white/80">
-                    -{berat}Kg × {selectedKiloan.nama}
+                    {berat}Kg × {selectedKiloan.nama}
                   </span>
                   <span>={fmtRupiah(hargaLayanan)}</span>
                 </div>
@@ -703,7 +708,7 @@ export default function NewTransaction() {
               <p className="text-white/50 text-xs text-center mt-2">
                 {beratMelebihi
                   ? `Berat melebihi batas ${maxBerat} Kg`
-                  : "Lengkapi data pelanggan & berat cucian"}
+                  : "Lengkapi data pelanggan & isi kiloan atau minimal satu addon"}
               </p>
             )}
           </div>

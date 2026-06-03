@@ -6,7 +6,7 @@ import Home                    from '../assets/Home.png';
 import About                   from '../assets/About.png'; 
 import logoImage               from "../assets/logo.png"; 
 
-// ── Konstanta label timeline — sama dengan Dashboard.jsx ──────────────────────
+// ── Konstanta label timeline ──────────────────────────────────────────────────
 const TIMELINE_LABELS = [
   'Order Di Terima',
   'Sedang Di Pilah',
@@ -200,7 +200,7 @@ export default function LandingPage() {
   const scrollTo = (id) => {
     const el = document.getElementById(id);
     if (el) {
-      const navbarHeight = 64; // sesuaikan jika navbar lebih tinggi/rendah
+      const navbarHeight = 64; 
       const top = el.getBoundingClientRect().top + window.scrollY - navbarHeight;
       window.scrollTo({ top, behavior: 'smooth' });
     }
@@ -217,7 +217,15 @@ export default function LandingPage() {
 
   useEffect(() => {
     api.get('/landing/services')
-      .then(res => setServices(res.data.data))
+      .then(res => {
+        const rawData = res.data.data || { kiloan: [], satuan: [] };
+        
+        // Diurutkan berdasarkan ID terendah, lalu memotong item pertama menggunakan .slice(1)
+        const sortedKiloan = [...(rawData.kiloan || [])].sort((a, b) => a.id - b.id).slice(1);
+        const sortedSatuan = [...(rawData.satuan || [])].sort((a, b) => a.id - b.id).slice(1);
+
+        setServices({ kiloan: sortedKiloan, satuan: sortedSatuan });
+      })
       .catch(() => {})
       .finally(() => setLoadSvc(false));
   }, []);
@@ -384,7 +392,6 @@ export default function LandingPage() {
                         key={s.id}
                         className="relative bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-t-8 border-t-[#3b82f6] hover:shadow-md hover:-translate-y-0.5 transition duration-200"
                       >
-                        {/* Icon pojok kanan atas — Kiloan: timbangan */}
                         <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#eaf6fb] flex items-center justify-center border border-[#c8e9f5]">
                           <svg className="w-5 h-5 text-[#0077b6]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round"
@@ -418,7 +425,6 @@ export default function LandingPage() {
                         key={s.id}
                         className="relative bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-t-8 border-t-[#1a3d5c] hover:shadow-md hover:-translate-y-0.5 transition duration-200"
                       >
-                        {/* Icon pojok kanan atas — Satuan: Generic Items (tumpukan lipatan) */}
                         <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#eaf6fb] flex items-center justify-center border border-[#c8e9f5]">
                           <svg className="w-5 h-5 text-[#0077b6]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />

@@ -663,10 +663,11 @@ export default function PriceSetting() {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <h2 className="font-bold text-gray-800 text-base mb-4">Layanan Kiloan</h2>
                 <div className="divide-y divide-gray-100">
-                  {kiloan.length === 0 ? (
+                  {/* .slice(1) digunakan untuk menyembunyikan item pertama dari list */}
+                  {kiloan.slice(1).length === 0 ? (
                     <p className="text-sm text-gray-400 py-4 text-center">Belum ada layanan kiloan</p>
                   ) : (
-                    kiloan.map((k) => (
+                    kiloan.slice(1).map((k) => (
                       <KiloanRow
                         key={k.id}
                         item={k}
