@@ -5,13 +5,15 @@ import api from "../../api/axios";
 import {
   Pencil, Trash2, Plus, Save, X,
   ShoppingBag, CheckCircle2, AlertTriangle,
-  Loader2, RotateCcw, Trash,
+  Loader2, RotateCcw, Trash, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
 const fmt = (n) => "Rp " + Number(n).toLocaleString("id-ID") + ",00";
+
+const ADDON_PER_PAGE = 5;
 
 // ═══════════════════════════════════════════════════════════════
 // KOMPONEN KECIL
@@ -178,9 +180,7 @@ function KiloanRow({ item, onSave, onDeleteRequest, saving }) {
 function TrashModal({ items, onRestore, onForceDelete, onClose, loading }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      {/* Diperbesar menjadi max-w-2xl dan ditambahkan tinggi minimal */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 flex flex-col min-h-[400px]">
-        
         <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
           <h3 className="font-bold text-gray-800 text-xl flex items-center gap-2">
             <Trash size={22} className="text-orange-400" /> Recycle Bin
@@ -222,7 +222,6 @@ function TrashModal({ items, onRestore, onForceDelete, onClose, loading }) {
                     onClick={() => onRestore(item)}
                     disabled={loading}
                     className="flex items-center gap-1.5 px-4 py-2 bg-green-50 border border-green-300 text-green-600 rounded-lg text-sm font-semibold hover:bg-green-100 transition disabled:opacity-50"
-                    title="Pulihkan"
                   >
                     <RotateCcw size={16} /> Pulihkan
                   </button>
@@ -230,7 +229,6 @@ function TrashModal({ items, onRestore, onForceDelete, onClose, loading }) {
                     onClick={() => onForceDelete(item)}
                     disabled={loading}
                     className="flex items-center gap-1.5 px-4 py-2 bg-red-50 border border-red-300 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-100 transition disabled:opacity-50"
-                    title="Hapus Permanen"
                   >
                     <Trash size={16} /> Hapus
                   </button>
@@ -291,7 +289,7 @@ function EditAddonModal({ item, onSave, onClose, loading }) {
             />
           </div>
         </div>
-        
+
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-600 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
             <AlertTriangle size={14} className="flex-shrink-0" />
@@ -326,32 +324,44 @@ export default function PriceSetting() {
   const [addon, setAddon]       = useState([]);
   const [maxBerat, setMaxBerat] = useState(7);
 
+  // ── Pagination addon ───────────────────────────────────────────────────────
+  const [addonPage, setAddonPage] = useState(1);
+
   // ── Loading state ──────────────────────────────────────────────────────────
-  const [pageLoading, setPageLoading]   = useState(true);
-  const [saving, setSaving]             = useState(false);
+  const [pageLoading, setPageLoading]         = useState(true);
+  const [saving, setSaving]                   = useState(false);
   const [maxBeratLoading, setMaxBeratLoading] = useState(false);
 
   // ── Toast ──────────────────────────────────────────────────────────────────
-  const [toast, setToast] = useState(null); // { msg, type }
+  const [toast, setToast] = useState(null);
   const showToast = (msg, type = "success") => setToast({ msg, type });
 
   // ── Modals ─────────────────────────────────────────────────────────────────
-  const [kiloanToDelete, setKiloanToDelete]   = useState(null);
-  const [addonToDelete, setAddonToDelete]     = useState(null);
-  const [editAddon, setEditAddon]             = useState(null);
-  const [trashOpen, setTrashOpen]             = useState(false);
-  const [trashItems, setTrashItems]           = useState([]);
-  const [trashLoading, setTrashLoading]       = useState(false);
-  const [hardDeleteItem, setHardDeleteItem]   = useState(null); // item untuk force delete
+  const [kiloanToDelete, setKiloanToDelete] = useState(null);
+  const [addonToDelete, setAddonToDelete]   = useState(null);
+  const [editAddon, setEditAddon]           = useState(null);
+  const [trashOpen, setTrashOpen]           = useState(false);
+  const [trashItems, setTrashItems]         = useState([]);
+  const [trashLoading, setTrashLoading]     = useState(false);
+  const [hardDeleteItem, setHardDeleteItem] = useState(null);
 
   // ── Tambah form state ──────────────────────────────────────────────────────
-  const [addKiloanOpen, setAddKiloanOpen] = useState(false);
-  const [newKiloan, setNewKiloan]         = useState({ nama: "", harga: "" });
-  const [addKiloanError, setAddKiloanError] = useState("");
+  const [addKiloanOpen, setAddKiloanOpen]     = useState(false);
+  const [newKiloan, setNewKiloan]             = useState({ nama: "", harga: "" });
+  const [addKiloanError, setAddKiloanError]   = useState("");
 
-  const [addAddonOpen, setAddAddonOpen]   = useState(false);
-  const [newAddon, setNewAddon]           = useState({ nama: "", harga: "" });
-  const [addAddonError, setAddAddonError] = useState("");
+  const [addAddonOpen, setAddAddonOpen]       = useState(false);
+  const [newAddon, setNewAddon]               = useState({ nama: "", harga: "" });
+  const [addAddonError, setAddAddonError]     = useState("");
+
+  // ── Computed pagination addon ──────────────────────────────────────────────
+  const addonTotalPages  = Math.max(1, Math.ceil(addon.length / ADDON_PER_PAGE));
+  const addonPaginated   = addon.slice((addonPage - 1) * ADDON_PER_PAGE, addonPage * ADDON_PER_PAGE);
+
+  // Jika setelah hapus halaman aktif melebihi total halaman, mundur 1
+  useEffect(() => {
+    if (addonPage > addonTotalPages) setAddonPage(addonTotalPages);
+  }, [addon.length, addonTotalPages]);
 
   // ── Fetch semua data ───────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
@@ -396,7 +406,7 @@ export default function PriceSetting() {
       setKiloan((prev) => prev.map((k) => k.id === id ? data.data : k));
       showToast("Layanan kiloan diperbarui");
       return true;
-    } catch (err) {
+    } catch {
       showToast("Gagal memperbarui layanan", "error");
       return false;
     } finally {
@@ -469,6 +479,8 @@ export default function PriceSetting() {
       setNewAddon({ nama: "", harga: "" });
       setAddAddonOpen(false);
       showToast("Add-on ditambahkan");
+      // Pindah ke halaman terakhir agar item baru langsung terlihat
+      setAddonPage(Math.ceil((addon.length + 1) / ADDON_PER_PAGE));
     } catch (err) {
       setAddAddonError(err.response?.data?.message ?? "Terjadi kesalahan saat menyimpan data.");
     } finally {
@@ -498,10 +510,8 @@ export default function PriceSetting() {
     setTrashLoading(true);
     try {
       const { data } = await api.post(`/admin/prices/${item.id}/restore`);
-      // Masukkan kembali ke list yang sesuai
       if (data.data.type === "kiloan") setKiloan((prev) => [...prev, data.data]);
       else setAddon((prev) => [...prev, data.data]);
-      // Hapus dari trash list
       setTrashItems((prev) => prev.filter((t) => t.id !== item.id));
       showToast(`${item.nama} berhasil dipulihkan`);
     } catch {
@@ -621,7 +631,6 @@ export default function PriceSetting() {
             Pengaturan Harga{" "}
             <span className="font-normal text-gray-500">(Price Setting)</span>
           </h1>
-          {/* Tombol Recycle Bin */}
           <button
             onClick={openTrash}
             className="flex items-center gap-2 border-2 border-orange-400 text-orange-500 px-4 py-2 rounded-xl text-sm font-bold hover:bg-orange-50 transition"
@@ -645,7 +654,6 @@ export default function PriceSetting() {
         </div>
       ) : (
         <>
-          {/* ── Grid ── */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
 
             {/* ── KIRI: Kiloan + Max Berat ── */}
@@ -655,10 +663,11 @@ export default function PriceSetting() {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <h2 className="font-bold text-gray-800 text-base mb-4">Layanan Kiloan</h2>
                 <div className="divide-y divide-gray-100">
-                  {kiloan.length === 0 ? (
+                  {/* .slice(1) digunakan untuk menyembunyikan item pertama dari list */}
+                  {kiloan.slice(1).length === 0 ? (
                     <p className="text-sm text-gray-400 py-4 text-center">Belum ada layanan kiloan</p>
                   ) : (
-                    kiloan.map((k) => (
+                    kiloan.slice(1).map((k) => (
                       <KiloanRow
                         key={k.id}
                         item={k}
@@ -670,7 +679,6 @@ export default function PriceSetting() {
                   )}
                 </div>
 
-                {/* Form tambah kiloan */}
                 {addKiloanOpen ? (
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <div className={`flex items-center gap-2 border rounded-xl p-1.5 ${addKiloanError ? 'border-red-300 bg-red-50/30' : 'border-transparent'}`}>
@@ -705,12 +713,12 @@ export default function PriceSetting() {
                         {saving && <Loader2 size={13} className="animate-spin" />}
                         Simpan
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           setAddKiloanOpen(false);
                           setAddKiloanError("");
                           setNewKiloan({ nama: "", harga: "" });
-                        }} 
+                        }}
                         className="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm hover:bg-gray-200"
                       >
                         Batal
@@ -772,55 +780,108 @@ export default function PriceSetting() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col">
               <h2 className="font-bold text-gray-800 text-base mb-4">Layanan Satuan (Add-On)</h2>
 
-              <div className="rounded-xl overflow-hidden border border-black flex-1">
-                <table className="w-full text-sm border-collapse border border-black">
-                  <thead>
-                    <tr className="bg-[#0077b6] text-white">
-                      <th className="px-4 py-3 text-center font-semibold w-12 border border-black">No</th>
-                      <th className="px-4 py-3 text-center font-semibold border border-black">NAMA ITEM</th>
-                      <th className="px-4 py-3 text-center font-semibold border border-black">HARGA SATUAN</th>
-                      <th className="px-4 py-3 text-center font-semibold w-24 border border-black">AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {addon.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="text-center py-8 text-gray-400 border border-black text-sm">
-                          Belum ada add-on
-                        </td>
+              {/* Tabel — style identik dengan OrderList */}
+              <div className="bg-white rounded-2xl shadow-sm border border-black overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-black">
+                  <h3 className="font-bold text-gray-800 text-sm uppercase">Tabel Add-On</h3>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse border-b border-black">
+                    <thead>
+                      <tr className="bg-[#0077b6] text-white">
+                        <th className="px-4 py-3.5 text-center font-bold border-r border-black w-12">No</th>
+                        <th className="px-4 py-3.5 text-center font-bold border-r border-black">Nama Item</th>
+                        <th className="px-4 py-3.5 text-center font-bold border-r border-black">Harga Satuan</th>
+                        <th className="px-4 py-3.5 text-center font-bold">Aksi</th>
                       </tr>
-                    ) : (
-                      addon.map((a, idx) => (
-                        <tr
-                          key={a.id}
-                          className={`transition hover:bg-blue-100/50 ${idx % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}
-                        >
-                          <td className="px-4 py-3 text-center text-gray-600 border border-black font-medium">{idx + 1}</td>
-                          <td className="px-4 py-3 text-center text-gray-800 font-medium border border-black">{a.nama}</td>
-                          <td className="px-4 py-3 text-center text-gray-700 font-semibold border border-black">{fmt(a.harga)}</td>
-                          <td className="px-4 py-3 border border-black">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                onClick={() => setEditAddon(a)}
-                                className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 text-blue-500 flex items-center justify-center hover:bg-blue-100"
-                                title="Edit"
-                              >
-                                <Pencil size={13} />
-                              </button>
-                              <button
-                                onClick={() => setAddonToDelete(a)}
-                                className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500 flex items-center justify-center hover:bg-red-100"
-                                title="Hapus"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
+                    </thead>
+                    <tbody>
+                      {addon.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="text-center py-10 text-gray-400 font-bold">
+                            Belum ada add-on
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        addonPaginated.map((a, idx) => {
+                          const globalIdx = (addonPage - 1) * ADDON_PER_PAGE + idx;
+                          const isLastRow = idx === addonPaginated.length - 1;
+                          return (
+                            <tr
+                              key={a.id}
+                              className={`transition hover:bg-blue-100/50 ${idx % 2 === 1 ? "bg-[#eaf6fb]" : "bg-white"}`}
+                            >
+                              <td className={`px-4 py-3 text-center text-gray-600 font-bold border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                                {globalIdx + 1}
+                              </td>
+                              <td className={`px-4 py-3 text-center text-gray-800 font-bold border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                                {a.nama}
+                              </td>
+                              <td className={`px-4 py-3 text-center text-gray-700 font-semibold border-r border-black ${!isLastRow ? "border-b border-black" : ""}`}>
+                                {fmt(a.harga)}
+                              </td>
+                              <td className={`px-4 py-3 text-center ${!isLastRow ? "border-b border-black" : ""}`}>
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={() => setEditAddon(a)}
+                                    className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition"
+                                    title="Edit"
+                                  >
+                                    <Pencil size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => setAddonToDelete(a)}
+                                    className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500 flex items-center justify-center hover:bg-red-100 transition"
+                                    title="Hapus"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination — identik dengan OrderList */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-3.5 bg-gray-50">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Halaman {addonPage} dari {addonTotalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setAddonPage((p) => Math.max(1, p - 1))}
+                      disabled={addonPage === 1}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold border border-black bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      <ChevronLeft size={14} /> Sebelumnya
+                    </button>
+                    <div className="flex items-center gap-1 mx-2">
+                      {Array.from({ length: addonTotalPages }, (_, i) => i + 1).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setAddonPage(p)}
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition border border-black ${
+                            addonPage === p ? "bg-[#0077b6] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setAddonPage((p) => Math.min(addonTotalPages, p + 1))}
+                      disabled={addonPage === addonTotalPages}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold border border-black bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      Selanjutnya <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Form tambah addon */}
@@ -858,12 +919,12 @@ export default function PriceSetting() {
                       {saving && <Loader2 size={13} className="animate-spin" />}
                       Simpan
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         setAddAddonOpen(false);
                         setAddAddonError("");
                         setNewAddon({ nama: "", harga: "" });
-                      }} 
+                      }}
                       className="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm hover:bg-gray-200"
                     >
                       Batal
@@ -885,6 +946,7 @@ export default function PriceSetting() {
                 </button>
               )}
             </div>
+
           </div>
         </>
       )}
