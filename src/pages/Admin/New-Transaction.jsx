@@ -579,6 +579,7 @@ export default function NewTransaction() {
                       <AlertTriangle size={12} /> Melebihi batas maksimal {maxBerat} Kg
                     </p>
                   )}
+                  <label className="text-xs text-gray-500 mb-1 block">Jika kosong maka Layanan Hanya Satuan</label>
                 </div>
 
                 {/* Layanan */}

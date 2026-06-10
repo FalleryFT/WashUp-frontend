@@ -222,7 +222,7 @@ export default function LandingPage() {
         
         // Diurutkan berdasarkan ID terendah, lalu memotong item pertama menggunakan .slice(1)
         const sortedKiloan = [...(rawData.kiloan || [])].sort((a, b) => a.id - b.id).slice(1);
-        const sortedSatuan = [...(rawData.satuan || [])].sort((a, b) => a.id - b.id).slice(1);
+        const sortedSatuan = [...(rawData.satuan || [])].sort((a, b) => a.id - b.id).slice(0);
 
         setServices({ kiloan: sortedKiloan, satuan: sortedSatuan });
       })
